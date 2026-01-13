@@ -4,28 +4,16 @@ import { Mail, Linkedin, Github, MapPin } from 'lucide-react';
 const Contact = () => {
   const contactMethods = [
     {
-      icon: Mail,
-      label: 'Email',
-      value: 'your.email@example.com',
-      href: 'mailto:your.email@example.com',
-    },
-    {
       icon: Linkedin,
       label: 'LinkedIn',
-      value: '/in/yourusername',
-      href: 'https://linkedin.com/in/yourusername',
+      value: '/in/shadyabushady/',
+      href: 'https://www.linkedin.com/in/shadyabushady/',
     },
     {
       icon: Github,
       label: 'GitHub',
-      value: '@yourusername',
-      href: 'https://github.com/yourusername',
-    },
-    {
-      icon: MapPin,
-      label: 'Location',
-      value: 'London, UK',
-      href: null,
+      value: '@Shadyabu',
+      href: 'https://github.com/Shadyabu',
     },
   ];
 
