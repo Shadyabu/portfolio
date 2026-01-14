@@ -21,6 +21,7 @@ import sdg17 from '../../assets/SDGIconsWEB/E-WEB-Goal-17.png';
 
 const SDGParticles = () => {
   const containerRef = useRef(null);
+  const canvasRef = useRef(null);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
 
   const sdgIcons = [
@@ -39,6 +40,16 @@ const SDGParticles = () => {
     { x: 90, y: 50, icon: 6 },
     { x: 25, y: 85, icon: 7 },
     { x: 70, y: 15, icon: 8 },
+  ];
+
+  // Define connections between nearby nodes
+  const connections = [
+    [0, 4], [0, 5], // Node 0 connections
+    [1, 4], [1, 6], [1, 8], // Node 1 connections
+    [2, 5], [2, 7], // Node 2 connections
+    [3, 6], [3, 7], // Node 3 connections
+    [4, 8], [5, 7], // Cross connections
+    [6, 8], // More connections
   ];
 
   useEffect(() => {
@@ -63,6 +74,71 @@ const SDGParticles = () => {
     };
   }, []);
 
+  // Animated connections canvas
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    let animationId;
+    let pulseOffset = 0;
+
+    const animate = () => {
+      if (!containerRef.current) return;
+
+      const rect = containerRef.current.getBoundingClientRect();
+      canvas.width = rect.width;
+      canvas.height = rect.height;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      pulseOffset += 0.02;
+
+      // Draw connections
+      connections.forEach(([fromIndex, toIndex], connIndex) => {
+        const from = iconPositions[fromIndex];
+        const to = iconPositions[toIndex];
+
+        const x1 = (from.x / 100) * canvas.width;
+        const y1 = (from.y / 100) * canvas.height;
+        const x2 = (to.x / 100) * canvas.width;
+        const y2 = (to.y / 100) * canvas.height;
+
+        // Pulsing line opacity
+        const pulse = Math.sin(pulseOffset + connIndex * 0.5) * 0.5 + 0.5;
+        const opacity = 0.1 + pulse * 0.15;
+
+        // Draw line
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = `rgba(34, 197, 94, ${opacity})`; // Green color
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        // Draw animated particle traveling along the line
+        const particleProgress = (pulseOffset * 0.5 + connIndex * 0.3) % 1;
+        const particleX = x1 + (x2 - x1) * particleProgress;
+        const particleY = y1 + (y2 - y1) * particleProgress;
+
+        ctx.beginPath();
+        ctx.arc(particleX, particleY, 3, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(34, 197, 94, ${0.5 + pulse * 0.5})`;
+        ctx.fill();
+      });
+
+      animationId = requestAnimationFrame(animate);
+    };
+
+    animate();
+
+    return () => {
+      if (animationId) {
+        cancelAnimationFrame(animationId);
+      }
+    };
+  }, []);
+
   // Calculate parallax offset for each icon
   const getParallaxStyle = (iconX, iconY) => {
     const deltaX = (mousePos.x - iconX) * 0.02; // Subtle movement
@@ -76,6 +152,13 @@ const SDGParticles = () => {
     <div ref={containerRef} className="absolute inset-0 w-full h-full overflow-hidden">
       {/* Animated gradient background */}
       <div className="absolute inset-0 bg-gradient-to-br from-blue-50 via-green-50 to-cyan-50 animate-gradient"></div>
+
+      {/* Neural network connections canvas */}
+      <canvas
+        ref={canvasRef}
+        className="absolute inset-0 w-full h-full"
+        style={{ pointerEvents: 'none' }}
+      />
 
       {/* Floating SDG icons with parallax */}
       {iconPositions.map((pos, index) => (
@@ -91,10 +174,11 @@ const SDGParticles = () => {
           <img
             src={sdgIcons[pos.icon]}
             alt={`SDG ${pos.icon + 1}`}
-            className="w-12 h-12 md:w-16 md:h-16 opacity-30 hover:opacity-60 transition-opacity duration-300"
+            className="w-12 h-12 md:w-16 md:h-16 opacity-40 hover:opacity-70 transition-opacity duration-300"
             style={{
               animation: `float ${3 + index * 0.5}s ease-in-out infinite`,
               animationDelay: `${index * 0.2}s`,
+              filter: 'drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1))',
             }}
           />
         </div>
