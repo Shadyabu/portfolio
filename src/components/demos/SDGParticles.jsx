@@ -1,68 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
-
-// Import all SDG icons
-import sdg1 from '../../assets/SDGIconsWEB/E-WEB-Goal-01.png';
-import sdg2 from '../../assets/SDGIconsWEB/E-WEB-Goal-02.png';
-import sdg3 from '../../assets/SDGIconsWEB/E-WEB-Goal-03.png';
-import sdg4 from '../../assets/SDGIconsWEB/E-WEB-Goal-04.png';
-import sdg5 from '../../assets/SDGIconsWEB/E-WEB-Goal-05.png';
-import sdg6 from '../../assets/SDGIconsWEB/E-WEB-Goal-06.png';
-import sdg7 from '../../assets/SDGIconsWEB/E-WEB-Goal-07.png';
-import sdg8 from '../../assets/SDGIconsWEB/E-WEB-Goal-08.png';
-import sdg9 from '../../assets/SDGIconsWEB/E-WEB-Goal-09.png';
-import sdg10 from '../../assets/SDGIconsWEB/E-WEB-Goal-10.png';
-import sdg11 from '../../assets/SDGIconsWEB/E-WEB-Goal-11.png';
-import sdg12 from '../../assets/SDGIconsWEB/E-WEB-Goal-12.png';
-import sdg13 from '../../assets/SDGIconsWEB/E-WEB-Goal-13.png';
-import sdg14 from '../../assets/SDGIconsWEB/E-WEB-Goal-14.png';
-import sdg15 from '../../assets/SDGIconsWEB/E-WEB-Goal-15.png';
-import sdg16 from '../../assets/SDGIconsWEB/E-WEB-Goal-16.png';
-import sdg17 from '../../assets/SDGIconsWEB/E-WEB-Goal-17.png';
+import { useEffect, useRef } from 'react';
 
 const SDGParticles = () => {
   const canvasRef = useRef(null);
   const animationRef = useRef(null);
-  const nodesRef = useRef([]);
-  const particlesRef = useRef([]);
-  const [imagesLoaded, setImagesLoaded] = useState(false);
-  const imagesRef = useRef([]);
-
-  const sdgIcons = [
-    sdg1, sdg2, sdg3, sdg4, sdg5, sdg6, sdg7, sdg8, sdg9,
-    sdg10, sdg11, sdg12, sdg13, sdg14, sdg15, sdg16, sdg17
-  ];
 
   useEffect(() => {
-    // Preload images
-    const imageElements = sdgIcons.map((src) => {
-      const img = new Image();
-      img.src = src;
-      return img;
-    });
-
-    Promise.all(
-      imageElements.map(
-        (img) =>
-          new Promise((resolve) => {
-            img.onload = resolve;
-            img.onerror = resolve;
-          })
-      )
-    ).then(() => {
-      imagesRef.current = imageElements;
-      setImagesLoaded(true);
-    });
-
-    return () => {
-      imageElements.forEach((img) => {
-        img.src = '';
-      });
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!imagesLoaded) return;
-
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -73,138 +15,191 @@ const SDGParticles = () => {
     canvas.width = width;
     canvas.height = height;
 
-    // Node class for SDG icons
-    class Node {
-      constructor(x, y, imageIndex) {
+    // Code lines with SDG and AI themes
+    const codeLines = [
+      '# Training AI model for SDG impact analysis',
+      'import tensorflow as tf',
+      'from sdg_classifier import SDGModel',
+      '',
+      'model = SDGModel(goals=17)',
+      'model.compile(optimizer="adam")',
+      '',
+      '# Analyzing climate data...',
+      'sdg_13_accuracy = 0.94  # Climate Action',
+      'sdg_7_accuracy = 0.91   # Clean Energy',
+      'sdg_11_accuracy = 0.89  # Sustainable Cities',
+      '',
+      '> Training on 1M+ sustainability records',
+      '> Epoch 47/50 - Loss: 0.023',
+      '> Model converged. Ready for deployment.',
+    ];
+
+    // Matrix-style falling characters
+    class MatrixColumn {
+      constructor(x) {
         this.x = x;
-        this.y = y;
-        this.baseX = x;
-        this.baseY = y;
-        this.image = imagesRef.current[imageIndex];
-        this.size = 40;
-        this.pulse = Math.random() * Math.PI * 2;
-        this.pulseSpeed = 0.02 + Math.random() * 0.02;
-        this.connections = [];
+        this.y = Math.random() * -height;
+        this.speed = 1 + Math.random() * 2;
+        this.chars = '01アイウエオカキクケコサシスセソタチツテト1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        this.trail = [];
+        this.length = 10 + Math.random() * 20;
       }
 
       update() {
-        this.pulse += this.pulseSpeed;
-        // Gentle floating motion
-        this.x = this.baseX + Math.sin(this.pulse) * 3;
-        this.y = this.baseY + Math.cos(this.pulse * 0.7) * 3;
-      }
-
-      draw(ctx) {
-        const scale = 1 + Math.sin(this.pulse) * 0.1;
-        const size = this.size * scale;
-        ctx.globalAlpha = 0.8;
-        ctx.drawImage(this.image, this.x - size / 2, this.y - size / 2, size, size);
-        ctx.globalAlpha = 1;
-      }
-    }
-
-    // Particle class for flowing data
-    class Particle {
-      constructor(from, to) {
-        this.from = from;
-        this.to = to;
-        this.progress = Math.random();
-        this.speed = 0.005 + Math.random() * 0.01;
-        this.size = 2 + Math.random() * 2;
-        this.hue = Math.random() * 60 + 150; // Blue-green range
-      }
-
-      update() {
-        this.progress += this.speed;
-        if (this.progress > 1) {
-          this.progress = 0;
+        this.y += this.speed;
+        if (this.y > height + 100) {
+          this.y = -50;
+          this.x = Math.random() * width;
         }
       }
 
       draw(ctx) {
-        const x = this.from.x + (this.to.x - this.from.x) * this.progress;
-        const y = this.from.y + (this.to.y - this.from.y) * this.progress;
+        const char = this.chars[Math.floor(Math.random() * this.chars.length)];
 
-        ctx.beginPath();
-        ctx.arc(x, y, this.size, 0, Math.PI * 2);
-        ctx.fillStyle = `hsla(${this.hue}, 70%, 60%, ${1 - this.progress * 0.5})`;
-        ctx.fill();
+        // Bright head
+        ctx.fillStyle = '#00ff41';
+        ctx.font = '14px monospace';
+        ctx.fillText(char, this.x, this.y);
+
+        // Fading trail
+        for (let i = 1; i < this.length; i++) {
+          const alpha = 1 - (i / this.length);
+          ctx.fillStyle = `rgba(0, 255, 65, ${alpha * 0.5})`;
+          ctx.fillText(
+            this.chars[Math.floor(Math.random() * this.chars.length)],
+            this.x,
+            this.y - i * 16
+          );
+        }
       }
     }
 
-    // Create nodes in an organic layout
-    const nodes = [];
-    const nodeCount = Math.min(17, Math.floor(width / 100)); // Responsive node count
+    // Code snippet display
+    class CodeDisplay {
+      constructor() {
+        this.currentLine = 0;
+        this.currentChar = 0;
+        this.displayedLines = [];
+        this.charSpeed = 2; // Characters per frame
+        this.lineDelay = 30; // Frames between lines
+        this.delayCounter = 0;
+      }
 
-    for (let i = 0; i < nodeCount; i++) {
-      const angle = (Math.PI * 2 / nodeCount) * i;
-      const radius = Math.min(width, height) * 0.3;
-      const x = width / 2 + Math.cos(angle) * radius + (Math.random() - 0.5) * 50;
-      const y = height / 2 + Math.sin(angle) * radius + (Math.random() - 0.5) * 50;
-      nodes.push(new Node(x, y, i % sdgIcons.length));
-    }
+      update() {
+        if (this.currentLine < codeLines.length) {
+          const line = codeLines[this.currentLine];
 
-    // Create connections between nearby nodes
-    nodes.forEach((node, i) => {
-      nodes.forEach((other, j) => {
-        if (i !== j) {
-          const dx = node.x - other.x;
-          const dy = node.y - other.y;
-          const distance = Math.sqrt(dx * dx + dy * dy);
+          if (this.currentChar < line.length) {
+            // Type characters
+            this.currentChar += this.charSpeed;
+            if (this.currentChar >= line.length) {
+              this.currentChar = line.length;
+              this.delayCounter = 0;
+            }
+          } else {
+            // Move to next line after delay
+            this.delayCounter++;
+            if (this.delayCounter > this.lineDelay) {
+              this.displayedLines.push(line);
+              this.currentLine++;
+              this.currentChar = 0;
+            }
+          }
+        } else {
+          // Reset and loop
+          setTimeout(() => {
+            this.currentLine = 0;
+            this.currentChar = 0;
+            this.displayedLines = [];
+          }, 2000);
+        }
+      }
 
-          if (distance < Math.min(width, height) * 0.4) {
-            node.connections.push(other);
+      draw(ctx) {
+        const startX = 40;
+        const startY = height / 2 - 150;
+        const lineHeight = 24;
+
+        // Draw terminal-style background
+        ctx.fillStyle = 'rgba(20, 20, 30, 0.85)';
+        ctx.fillRect(20, startY - 40, Math.min(600, width - 40), 380);
+
+        // Terminal header
+        ctx.fillStyle = 'rgba(100, 200, 255, 0.3)';
+        ctx.fillRect(20, startY - 40, Math.min(600, width - 40), 30);
+
+        ctx.fillStyle = '#00ff88';
+        ctx.font = 'bold 12px monospace';
+        ctx.fillText('ai_engineer@sustainable-dev:~$ train_sdg_model.py', 30, startY - 20);
+
+        // Draw completed lines
+        ctx.font = '14px "Fira Code", monospace';
+        this.displayedLines.forEach((line, i) => {
+          const y = startY + i * lineHeight;
+          this.drawCodeLine(ctx, line, startX, y);
+        });
+
+        // Draw current typing line
+        if (this.currentLine < codeLines.length) {
+          const currentLineText = codeLines[this.currentLine].substring(0, Math.floor(this.currentChar));
+          const y = startY + this.displayedLines.length * lineHeight;
+          this.drawCodeLine(ctx, currentLineText, startX, y);
+
+          // Blinking cursor
+          if (Math.floor(Date.now() / 500) % 2 === 0) {
+            ctx.fillStyle = '#00ff88';
+            ctx.fillRect(startX + ctx.measureText(currentLineText).width + 2, y - 14, 8, 16);
           }
         }
-      });
-    });
+      }
 
-    // Create particles
-    const particles = [];
-    nodes.forEach((node) => {
-      node.connections.forEach((connection) => {
-        if (Math.random() > 0.7) { // Only some connections get particles
-          particles.push(new Particle(node, connection));
+      drawCodeLine(ctx, line, x, y) {
+        // Syntax highlighting
+        if (line.startsWith('#')) {
+          ctx.fillStyle = '#6a9955'; // Comments
+        } else if (line.startsWith('import') || line.startsWith('from')) {
+          ctx.fillStyle = '#c586c0'; // Keywords
+        } else if (line.includes('=')) {
+          const parts = line.split('=');
+          ctx.fillStyle = '#9cdcfe';
+          ctx.fillText(parts[0], x, y);
+          ctx.fillStyle = '#d4d4d4';
+          ctx.fillText('=', x + ctx.measureText(parts[0]).width, y);
+          ctx.fillStyle = '#ce9178';
+          ctx.fillText(parts[1], x + ctx.measureText(parts[0] + '=').width, y);
+          return;
+        } else if (line.startsWith('>')) {
+          ctx.fillStyle = '#00ff88'; // Terminal output
+        } else {
+          ctx.fillStyle = '#d4d4d4'; // Default
         }
-      });
-    });
+        ctx.fillText(line, x, y);
+      }
+    }
 
-    nodesRef.current = nodes;
-    particlesRef.current = particles;
+    // Create matrix columns
+    const columns = [];
+    const columnCount = Math.floor(width / 20);
+    for (let i = 0; i < columnCount; i++) {
+      columns.push(new MatrixColumn(i * 20));
+    }
+
+    const codeDisplay = new CodeDisplay();
 
     // Animation loop
     const animate = () => {
-      ctx.clearRect(0, 0, width, height);
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+      ctx.fillRect(0, 0, width, height);
 
-      // Draw connections
-      nodes.forEach((node) => {
-        node.connections.forEach((connection) => {
-          const dx = connection.x - node.x;
-          const dy = connection.y - node.y;
-          const distance = Math.sqrt(dx * dx + dy * dy);
-
-          ctx.beginPath();
-          ctx.moveTo(node.x, node.y);
-          ctx.lineTo(connection.x, connection.y);
-
-          const opacity = Math.max(0.05, 0.2 - (distance / 400));
-          ctx.strokeStyle = `rgba(100, 150, 200, ${opacity})`;
-          ctx.lineWidth = 1;
-          ctx.stroke();
-        });
+      // Update and draw matrix columns
+      columns.forEach(column => {
+        column.update();
+        column.draw(ctx);
       });
 
-      // Update and draw particles
-      particles.forEach((particle) => {
-        particle.update();
-        particle.draw(ctx);
-      });
-
-      // Update and draw nodes
-      nodes.forEach((node) => {
-        node.update();
-        node.draw(ctx);
-      });
+      // Update and draw code display
+      codeDisplay.update();
+      codeDisplay.draw(ctx);
 
       animationRef.current = requestAnimationFrame(animate);
     };
@@ -228,13 +223,13 @@ const SDGParticles = () => {
         cancelAnimationFrame(animationRef.current);
       }
     };
-  }, [imagesLoaded]);
+  }, []);
 
   return (
     <canvas
       ref={canvasRef}
       className="absolute inset-0 w-full h-full"
-      style={{ opacity: 0.7 }}
+      style={{ backgroundColor: '#000' }}
     />
   );
 };
