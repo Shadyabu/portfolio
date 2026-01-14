@@ -65,7 +65,7 @@ const SDGParticles = () => {
     if (!container) return;
 
     const particles = [];
-    const particleCount = 30; // Show each SDG icon at least once
+    const particleCount = 60; // More SDG icons
 
     class Particle {
       constructor(index) {
@@ -93,6 +93,12 @@ const SDGParticles = () => {
         this.size = 50;
         this.opacity = 0.7 + Math.random() * 0.3;
 
+        // Add autonomous floating parameters
+        this.floatSpeed = Math.random() * 0.5 + 0.3;
+        this.floatAngle = Math.random() * Math.PI * 2;
+        this.floatRadius = Math.random() * 30 + 20;
+        this.time = Math.random() * 1000;
+
         this.element.style.opacity = this.opacity;
         this.updatePosition();
       }
@@ -103,6 +109,13 @@ const SDGParticles = () => {
 
       update(mouseX, mouseY) {
         const rect = this.container.getBoundingClientRect();
+        this.time += 0.016; // Approximately 60fps
+
+        // Autonomous floating movement (circular/orbital motion around home)
+        const floatOffsetX = Math.cos(this.time * this.floatSpeed + this.floatAngle) * this.floatRadius;
+        const floatOffsetY = Math.sin(this.time * this.floatSpeed + this.floatAngle) * this.floatRadius;
+        const targetX = this.homeX + floatOffsetX;
+        const targetY = this.homeY + floatOffsetY;
 
         // Calculate distance from mouse
         const dx = this.x + this.size / 2 - mouseX;
@@ -114,18 +127,18 @@ const SDGParticles = () => {
         if (distance < repelRadius) {
           const force = (repelRadius - distance) / repelRadius;
           const angle = Math.atan2(dy, dx);
-          this.vx += Math.cos(angle) * force * 2;
-          this.vy += Math.sin(angle) * force * 2;
+          this.vx += Math.cos(angle) * force * 3;
+          this.vy += Math.sin(angle) * force * 3;
         }
 
-        // Return to home position
-        const homeForce = 0.05;
-        this.vx += (this.homeX - this.x) * homeForce;
-        this.vy += (this.homeY - this.y) * homeForce;
+        // Return to floating target position (not static home)
+        const homeForce = 0.03;
+        this.vx += (targetX - this.x) * homeForce;
+        this.vy += (targetY - this.y) * homeForce;
 
         // Apply friction
-        this.vx *= 0.9;
-        this.vy *= 0.9;
+        this.vx *= 0.92;
+        this.vy *= 0.92;
 
         // Update position
         this.x += this.vx;
