@@ -21,9 +21,8 @@ import sdg17 from '../../assets/SDGIconsWEB/E-WEB-Goal-17.png';
 
 const SDGParticles = () => {
   const containerRef = useRef(null);
-  const particlesRef = useRef([]);
-  const mouseRef = useRef({ x: -1000, y: -1000 });
   const animationRef = useRef(null);
+  const rotationRef = useRef(0);
   const [imagesLoaded, setImagesLoaded] = useState(false);
 
   const sdgIcons = [
@@ -64,142 +63,56 @@ const SDGParticles = () => {
     const container = containerRef.current;
     if (!container) return;
 
-    const particles = [];
-    const particleCount = 60; // More SDG icons
+    const icons = [];
+    const iconCount = 17; // All 17 SDG goals
 
-    class Particle {
-      constructor(index) {
-        this.container = container;
-        this.element = document.createElement('img');
-        this.element.src = sdgIcons[index % sdgIcons.length];
-        this.element.className = 'absolute transition-transform duration-100';
-        this.element.style.width = '50px';
-        this.element.style.height = '50px';
-        this.element.style.pointerEvents = 'none';
-        this.element.style.userSelect = 'none';
-
-        this.reset();
-        container.appendChild(this.element);
-      }
-
-      reset() {
-        const rect = this.container.getBoundingClientRect();
-        this.homeX = Math.random() * (rect.width - 50);
-        this.homeY = Math.random() * (rect.height - 50);
-        this.x = this.homeX;
-        this.y = this.homeY;
-        this.vx = 0;
-        this.vy = 0;
-        this.size = 50;
-        this.opacity = 0.7 + Math.random() * 0.3;
-
-        // Add autonomous floating parameters
-        this.floatSpeed = Math.random() * 0.5 + 0.3;
-        this.floatAngle = Math.random() * Math.PI * 2;
-        this.floatRadius = Math.random() * 30 + 20;
-        this.time = Math.random() * 1000;
-
-        this.element.style.opacity = this.opacity;
-        this.updatePosition();
-      }
-
-      updatePosition() {
-        this.element.style.transform = `translate(${this.x}px, ${this.y}px)`;
-      }
-
-      update(mouseX, mouseY) {
-        const rect = this.container.getBoundingClientRect();
-        this.time += 0.016; // Approximately 60fps
-
-        // Autonomous floating movement (circular/orbital motion around home)
-        const floatOffsetX = Math.cos(this.time * this.floatSpeed + this.floatAngle) * this.floatRadius;
-        const floatOffsetY = Math.sin(this.time * this.floatSpeed + this.floatAngle) * this.floatRadius;
-        const targetX = this.homeX + floatOffsetX;
-        const targetY = this.homeY + floatOffsetY;
-
-        // Calculate distance from mouse
-        const dx = this.x + this.size / 2 - mouseX;
-        const dy = this.y + this.size / 2 - mouseY;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        const repelRadius = 150;
-
-        // Mouse repulsion
-        if (distance < repelRadius) {
-          const force = (repelRadius - distance) / repelRadius;
-          const angle = Math.atan2(dy, dx);
-          this.vx += Math.cos(angle) * force * 3;
-          this.vy += Math.sin(angle) * force * 3;
-        }
-
-        // Return to floating target position (not static home)
-        const homeForce = 0.03;
-        this.vx += (targetX - this.x) * homeForce;
-        this.vy += (targetY - this.y) * homeForce;
-
-        // Apply friction
-        this.vx *= 0.92;
-        this.vy *= 0.92;
-
-        // Update position
-        this.x += this.vx;
-        this.y += this.vy;
-
-        // Keep within bounds
-        if (this.x < 0) {
-          this.x = 0;
-          this.vx = 0;
-        }
-        if (this.x > rect.width - this.size) {
-          this.x = rect.width - this.size;
-          this.vx = 0;
-        }
-        if (this.y < 0) {
-          this.y = 0;
-          this.vy = 0;
-        }
-        if (this.y > rect.height - this.size) {
-          this.y = rect.height - this.size;
-          this.vy = 0;
-        }
-
-        this.updatePosition();
-      }
-
-      destroy() {
-        if (this.element && this.element.parentNode) {
-          this.element.parentNode.removeChild(this.element);
-        }
-      }
-    }
-
-    // Create particles
-    for (let i = 0; i < particleCount; i++) {
-      particles.push(new Particle(i));
-    }
-
-    particlesRef.current = particles;
-
-    // Mouse move handler
-    const handleMouseMove = (e) => {
-      const rect = container.getBoundingClientRect();
-      mouseRef.current = {
-        x: e.clientX - rect.left,
-        y: e.clientY - rect.top,
-      };
-    };
-
-    const handleMouseLeave = () => {
-      mouseRef.current = { x: -1000, y: -1000 };
-    };
-
-    container.addEventListener('mousemove', handleMouseMove);
-    container.addEventListener('mouseleave', handleMouseLeave);
+    // Create icon elements
+    sdgIcons.forEach((iconSrc, index) => {
+      const img = document.createElement('img');
+      img.src = iconSrc;
+      img.className = 'absolute';
+      img.style.width = '60px';
+      img.style.height = '60px';
+      img.style.transition = 'transform 0.3s ease, opacity 0.3s ease';
+      img.style.pointerEvents = 'none';
+      img.style.userSelect = 'none';
+      container.appendChild(img);
+      icons.push(img);
+    });
 
     // Animation loop
     const animate = () => {
-      particles.forEach((particle) => {
-        particle.update(mouseRef.current.x, mouseRef.current.y);
+      const rect = container.getBoundingClientRect();
+      const centerX = rect.width / 2;
+      const centerY = rect.height / 2;
+
+      // Calculate radius based on screen size
+      const radius = Math.min(rect.width, rect.height) * 0.35;
+
+      // Rotate slowly
+      rotationRef.current += 0.003; // Slow rotation speed
+
+      icons.forEach((icon, index) => {
+        // Calculate angle for this icon
+        const angleOffset = (Math.PI * 2 / iconCount) * index;
+        const angle = rotationRef.current + angleOffset;
+
+        // Calculate position
+        const x = centerX + Math.cos(angle) * radius - 30; // -30 to center the icon
+        const y = centerY + Math.sin(angle) * radius - 30;
+
+        // Apply position
+        icon.style.transform = `translate(${x}px, ${y}px)`;
+
+        // Subtle scale effect based on position (icons at top are slightly larger)
+        const normalizedY = (y - centerY) / radius;
+        const scale = 1 + (normalizedY * -0.2); // Icons at top (negative Y) are larger
+        const opacity = 0.7 + (normalizedY * -0.3); // Icons at top are more opaque
+
+        icon.style.transform = `translate(${x}px, ${y}px) scale(${scale})`;
+        icon.style.opacity = Math.max(0.4, Math.min(1, opacity));
       });
+
       animationRef.current = requestAnimationFrame(animate);
     };
 
@@ -207,12 +120,14 @@ const SDGParticles = () => {
 
     // Cleanup
     return () => {
-      container.removeEventListener('mousemove', handleMouseMove);
-      container.removeEventListener('mouseleave', handleMouseLeave);
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current);
       }
-      particles.forEach((particle) => particle.destroy());
+      icons.forEach((icon) => {
+        if (icon.parentNode) {
+          icon.parentNode.removeChild(icon);
+        }
+      });
     };
   }, [imagesLoaded]);
 
@@ -220,7 +135,7 @@ const SDGParticles = () => {
     <div
       ref={containerRef}
       className="absolute inset-0 w-full h-full"
-      style={{ opacity: 0.6 }}
+      style={{ opacity: 0.8 }}
     />
   );
 };
