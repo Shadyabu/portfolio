@@ -1,10 +1,14 @@
 import { motion } from 'framer-motion';
 import { ArrowDown } from 'lucide-react';
+import SDGParticles from '../demos/SDGParticles';
 
 const Hero = () => {
   return (
-    <section className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 pt-16">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+    <section className="relative min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 via-blue-50 to-green-50 pt-16 overflow-hidden">
+      {/* Animated SDG Particles Background */}
+      <SDGParticles />
+
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
