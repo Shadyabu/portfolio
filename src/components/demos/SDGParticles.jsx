@@ -1,136 +1,213 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+
+// Import all SDG icons
+import sdg1 from '../../assets/SDGIconsWEB/E-WEB-Goal-01.png';
+import sdg2 from '../../assets/SDGIconsWEB/E-WEB-Goal-02.png';
+import sdg3 from '../../assets/SDGIconsWEB/E-WEB-Goal-03.png';
+import sdg4 from '../../assets/SDGIconsWEB/E-WEB-Goal-04.png';
+import sdg5 from '../../assets/SDGIconsWEB/E-WEB-Goal-05.png';
+import sdg6 from '../../assets/SDGIconsWEB/E-WEB-Goal-06.png';
+import sdg7 from '../../assets/SDGIconsWEB/E-WEB-Goal-07.png';
+import sdg8 from '../../assets/SDGIconsWEB/E-WEB-Goal-08.png';
+import sdg9 from '../../assets/SDGIconsWEB/E-WEB-Goal-09.png';
+import sdg10 from '../../assets/SDGIconsWEB/E-WEB-Goal-10.png';
+import sdg11 from '../../assets/SDGIconsWEB/E-WEB-Goal-11.png';
+import sdg12 from '../../assets/SDGIconsWEB/E-WEB-Goal-12.png';
+import sdg13 from '../../assets/SDGIconsWEB/E-WEB-Goal-13.png';
+import sdg14 from '../../assets/SDGIconsWEB/E-WEB-Goal-14.png';
+import sdg15 from '../../assets/SDGIconsWEB/E-WEB-Goal-15.png';
+import sdg16 from '../../assets/SDGIconsWEB/E-WEB-Goal-16.png';
+import sdg17 from '../../assets/SDGIconsWEB/E-WEB-Goal-17.png';
 
 const SDGParticles = () => {
-  const canvasRef = useRef(null);
+  const containerRef = useRef(null);
+  const particlesRef = useRef([]);
+  const mouseRef = useRef({ x: -1000, y: -1000 });
+  const animationRef = useRef(null);
+  const [imagesLoaded, setImagesLoaded] = useState(false);
+
+  const sdgIcons = [
+    sdg1, sdg2, sdg3, sdg4, sdg5, sdg6, sdg7, sdg8, sdg9,
+    sdg10, sdg11, sdg12, sdg13, sdg14, sdg15, sdg16, sdg17
+  ];
 
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+    // Preload images
+    const imageElements = sdgIcons.map((src) => {
+      const img = new Image();
+      img.src = src;
+      return img;
+    });
 
-    const ctx = canvas.getContext('2d');
-    let animationFrameId;
-    let particles = [];
+    Promise.all(
+      imageElements.map(
+        (img) =>
+          new Promise((resolve) => {
+            img.onload = resolve;
+            img.onerror = resolve;
+          })
+      )
+    ).then(() => {
+      setImagesLoaded(true);
+    });
 
-    // UN SDG Data (17 goals with colors and numbers)
-    const sdgData = [
-      { number: 1, color: '#E5243B', name: 'No Poverty' },
-      { number: 2, color: '#DDA63A', name: 'Zero Hunger' },
-      { number: 3, color: '#4C9F38', name: 'Good Health' },
-      { number: 4, color: '#C5192D', name: 'Quality Education' },
-      { number: 5, color: '#FF3A21', name: 'Gender Equality' },
-      { number: 6, color: '#26BDE2', name: 'Clean Water' },
-      { number: 7, color: '#FCC30B', name: 'Affordable Energy' },
-      { number: 8, color: '#A21942', name: 'Decent Work' },
-      { number: 9, color: '#FD6925', name: 'Industry Innovation' },
-      { number: 10, color: '#DD1367', name: 'Reduced Inequalities' },
-      { number: 11, color: '#FD9D24', name: 'Sustainable Cities' },
-      { number: 12, color: '#BF8B2E', name: 'Responsible Consumption' },
-      { number: 13, color: '#3F7E44', name: 'Climate Action' },
-      { number: 14, color: '#0A97D9', name: 'Life Below Water' },
-      { number: 15, color: '#56C02B', name: 'Life on Land' },
-      { number: 16, color: '#00689D', name: 'Peace and Justice' },
-      { number: 17, color: '#19486A', name: 'Partnerships' },
-    ];
-
-    // Set canvas size
-    const setCanvasSize = () => {
-      canvas.width = canvas.offsetWidth;
-      canvas.height = canvas.offsetHeight;
+    return () => {
+      imageElements.forEach((img) => {
+        img.src = '';
+      });
     };
+  }, []);
 
-    setCanvasSize();
-    window.addEventListener('resize', setCanvasSize);
+  useEffect(() => {
+    if (!imagesLoaded) return;
 
-    // Particle class with SDG icons
+    const container = containerRef.current;
+    if (!container) return;
+
+    const particles = [];
+    const particleCount = 30; // Show each SDG icon at least once
+
     class Particle {
-      constructor() {
+      constructor(index) {
+        this.container = container;
+        this.element = document.createElement('img');
+        this.element.src = sdgIcons[index % sdgIcons.length];
+        this.element.className = 'absolute transition-transform duration-100';
+        this.element.style.width = '50px';
+        this.element.style.height = '50px';
+        this.element.style.pointerEvents = 'none';
+        this.element.style.userSelect = 'none';
+
         this.reset();
-        this.y = Math.random() * canvas.height;
-        this.opacity = Math.random() * 0.4 + 0.4;
+        container.appendChild(this.element);
       }
 
       reset() {
-        this.x = Math.random() * canvas.width;
-        this.y = -50;
-        this.size = Math.random() * 15 + 25; // Larger size for visibility
-        this.speedY = Math.random() * 0.3 + 0.15;
-        this.speedX = Math.random() * 0.3 - 0.15;
-        this.sdg = sdgData[Math.floor(Math.random() * sdgData.length)];
-        this.opacity = Math.random() * 0.4 + 0.5;
-        this.rotation = Math.random() * Math.PI * 2;
-        this.rotationSpeed = (Math.random() - 0.5) * 0.02;
+        const rect = this.container.getBoundingClientRect();
+        this.homeX = Math.random() * (rect.width - 50);
+        this.homeY = Math.random() * (rect.height - 50);
+        this.x = this.homeX;
+        this.y = this.homeY;
+        this.vx = 0;
+        this.vy = 0;
+        this.size = 50;
+        this.opacity = 0.7 + Math.random() * 0.3;
+
+        this.element.style.opacity = this.opacity;
+        this.updatePosition();
       }
 
-      update() {
-        this.y += this.speedY;
-        this.x += this.speedX;
-        this.rotation += this.rotationSpeed;
-
-        // Reset particle when it goes off screen
-        if (this.y > canvas.height + 50) {
-          this.reset();
-        }
-
-        if (this.x < -50 || this.x > canvas.width + 50) {
-          this.speedX *= -1;
-        }
+      updatePosition() {
+        this.element.style.transform = `translate(${this.x}px, ${this.y}px)`;
       }
 
-      draw() {
-        ctx.save();
-        ctx.translate(this.x, this.y);
-        ctx.rotate(this.rotation);
+      update(mouseX, mouseY) {
+        const rect = this.container.getBoundingClientRect();
 
-        // Draw colored square (like SDG icons)
-        ctx.fillStyle = this.sdg.color;
-        ctx.globalAlpha = this.opacity;
-        ctx.fillRect(-this.size / 2, -this.size / 2, this.size, this.size);
+        // Calculate distance from mouse
+        const dx = this.x + this.size / 2 - mouseX;
+        const dy = this.y + this.size / 2 - mouseY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        const repelRadius = 150;
 
-        // Draw white number
-        ctx.fillStyle = '#FFFFFF';
-        ctx.globalAlpha = this.opacity;
-        ctx.font = `bold ${this.size * 0.6}px Arial`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(this.sdg.number, 0, 0);
+        // Mouse repulsion
+        if (distance < repelRadius) {
+          const force = (repelRadius - distance) / repelRadius;
+          const angle = Math.atan2(dy, dx);
+          this.vx += Math.cos(angle) * force * 2;
+          this.vy += Math.sin(angle) * force * 2;
+        }
 
-        ctx.restore();
-        ctx.globalAlpha = 1;
+        // Return to home position
+        const homeForce = 0.05;
+        this.vx += (this.homeX - this.x) * homeForce;
+        this.vy += (this.homeY - this.y) * homeForce;
+
+        // Apply friction
+        this.vx *= 0.9;
+        this.vy *= 0.9;
+
+        // Update position
+        this.x += this.vx;
+        this.y += this.vy;
+
+        // Keep within bounds
+        if (this.x < 0) {
+          this.x = 0;
+          this.vx = 0;
+        }
+        if (this.x > rect.width - this.size) {
+          this.x = rect.width - this.size;
+          this.vx = 0;
+        }
+        if (this.y < 0) {
+          this.y = 0;
+          this.vy = 0;
+        }
+        if (this.y > rect.height - this.size) {
+          this.y = rect.height - this.size;
+          this.vy = 0;
+        }
+
+        this.updatePosition();
+      }
+
+      destroy() {
+        if (this.element && this.element.parentNode) {
+          this.element.parentNode.removeChild(this.element);
+        }
       }
     }
 
-    // Create particles - show all 17 SDGs multiple times
-    const particlesPerSDG = Math.max(2, Math.floor((canvas.width * canvas.height) / 100000));
-    for (let i = 0; i < sdgData.length * particlesPerSDG; i++) {
-      particles.push(new Particle());
+    // Create particles
+    for (let i = 0; i < particleCount; i++) {
+      particles.push(new Particle(i));
     }
+
+    particlesRef.current = particles;
+
+    // Mouse move handler
+    const handleMouseMove = (e) => {
+      const rect = container.getBoundingClientRect();
+      mouseRef.current = {
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top,
+      };
+    };
+
+    const handleMouseLeave = () => {
+      mouseRef.current = { x: -1000, y: -1000 };
+    };
+
+    container.addEventListener('mousemove', handleMouseMove);
+    container.addEventListener('mouseleave', handleMouseLeave);
 
     // Animation loop
     const animate = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
       particles.forEach((particle) => {
-        particle.update();
-        particle.draw();
+        particle.update(mouseRef.current.x, mouseRef.current.y);
       });
-
-      animationFrameId = requestAnimationFrame(animate);
+      animationRef.current = requestAnimationFrame(animate);
     };
 
     animate();
 
     // Cleanup
     return () => {
-      window.removeEventListener('resize', setCanvasSize);
-      cancelAnimationFrame(animationFrameId);
+      container.removeEventListener('mousemove', handleMouseMove);
+      container.removeEventListener('mouseleave', handleMouseLeave);
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+      particles.forEach((particle) => particle.destroy());
     };
-  }, []);
+  }, [imagesLoaded]);
 
   return (
-    <canvas
-      ref={canvasRef}
+    <div
+      ref={containerRef}
       className="absolute inset-0 w-full h-full"
-      style={{ opacity: 0.8 }}
+      style={{ opacity: 0.6 }}
     />
   );
 };
