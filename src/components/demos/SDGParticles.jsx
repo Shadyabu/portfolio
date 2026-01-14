@@ -20,10 +20,12 @@ import sdg16 from '../../assets/SDGIconsWEB/E-WEB-Goal-16.png';
 import sdg17 from '../../assets/SDGIconsWEB/E-WEB-Goal-17.png';
 
 const SDGParticles = () => {
-  const containerRef = useRef(null);
+  const canvasRef = useRef(null);
   const animationRef = useRef(null);
-  const rotationRef = useRef(0);
+  const nodesRef = useRef([]);
+  const particlesRef = useRef([]);
   const [imagesLoaded, setImagesLoaded] = useState(false);
+  const imagesRef = useRef([]);
 
   const sdgIcons = [
     sdg1, sdg2, sdg3, sdg4, sdg5, sdg6, sdg7, sdg8, sdg9,
@@ -47,6 +49,7 @@ const SDGParticles = () => {
           })
       )
     ).then(() => {
+      imagesRef.current = imageElements;
       setImagesLoaded(true);
     });
 
@@ -60,57 +63,147 @@ const SDGParticles = () => {
   useEffect(() => {
     if (!imagesLoaded) return;
 
-    const container = containerRef.current;
-    if (!container) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
 
-    const icons = [];
-    const iconCount = 17; // All 17 SDG goals
+    const ctx = canvas.getContext('2d');
+    let width = canvas.offsetWidth;
+    let height = canvas.offsetHeight;
 
-    // Create icon elements
-    sdgIcons.forEach((iconSrc, index) => {
-      const img = document.createElement('img');
-      img.src = iconSrc;
-      img.className = 'absolute';
-      img.style.width = '60px';
-      img.style.height = '60px';
-      img.style.transition = 'transform 0.3s ease, opacity 0.3s ease';
-      img.style.pointerEvents = 'none';
-      img.style.userSelect = 'none';
-      container.appendChild(img);
-      icons.push(img);
+    canvas.width = width;
+    canvas.height = height;
+
+    // Node class for SDG icons
+    class Node {
+      constructor(x, y, imageIndex) {
+        this.x = x;
+        this.y = y;
+        this.baseX = x;
+        this.baseY = y;
+        this.image = imagesRef.current[imageIndex];
+        this.size = 40;
+        this.pulse = Math.random() * Math.PI * 2;
+        this.pulseSpeed = 0.02 + Math.random() * 0.02;
+        this.connections = [];
+      }
+
+      update() {
+        this.pulse += this.pulseSpeed;
+        // Gentle floating motion
+        this.x = this.baseX + Math.sin(this.pulse) * 3;
+        this.y = this.baseY + Math.cos(this.pulse * 0.7) * 3;
+      }
+
+      draw(ctx) {
+        const scale = 1 + Math.sin(this.pulse) * 0.1;
+        const size = this.size * scale;
+        ctx.globalAlpha = 0.8;
+        ctx.drawImage(this.image, this.x - size / 2, this.y - size / 2, size, size);
+        ctx.globalAlpha = 1;
+      }
+    }
+
+    // Particle class for flowing data
+    class Particle {
+      constructor(from, to) {
+        this.from = from;
+        this.to = to;
+        this.progress = Math.random();
+        this.speed = 0.005 + Math.random() * 0.01;
+        this.size = 2 + Math.random() * 2;
+        this.hue = Math.random() * 60 + 150; // Blue-green range
+      }
+
+      update() {
+        this.progress += this.speed;
+        if (this.progress > 1) {
+          this.progress = 0;
+        }
+      }
+
+      draw(ctx) {
+        const x = this.from.x + (this.to.x - this.from.x) * this.progress;
+        const y = this.from.y + (this.to.y - this.from.y) * this.progress;
+
+        ctx.beginPath();
+        ctx.arc(x, y, this.size, 0, Math.PI * 2);
+        ctx.fillStyle = `hsla(${this.hue}, 70%, 60%, ${1 - this.progress * 0.5})`;
+        ctx.fill();
+      }
+    }
+
+    // Create nodes in an organic layout
+    const nodes = [];
+    const nodeCount = Math.min(17, Math.floor(width / 100)); // Responsive node count
+
+    for (let i = 0; i < nodeCount; i++) {
+      const angle = (Math.PI * 2 / nodeCount) * i;
+      const radius = Math.min(width, height) * 0.3;
+      const x = width / 2 + Math.cos(angle) * radius + (Math.random() - 0.5) * 50;
+      const y = height / 2 + Math.sin(angle) * radius + (Math.random() - 0.5) * 50;
+      nodes.push(new Node(x, y, i % sdgIcons.length));
+    }
+
+    // Create connections between nearby nodes
+    nodes.forEach((node, i) => {
+      nodes.forEach((other, j) => {
+        if (i !== j) {
+          const dx = node.x - other.x;
+          const dy = node.y - other.y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+
+          if (distance < Math.min(width, height) * 0.4) {
+            node.connections.push(other);
+          }
+        }
+      });
     });
+
+    // Create particles
+    const particles = [];
+    nodes.forEach((node) => {
+      node.connections.forEach((connection) => {
+        if (Math.random() > 0.7) { // Only some connections get particles
+          particles.push(new Particle(node, connection));
+        }
+      });
+    });
+
+    nodesRef.current = nodes;
+    particlesRef.current = particles;
 
     // Animation loop
     const animate = () => {
-      const rect = container.getBoundingClientRect();
-      const centerX = rect.width / 2;
-      const centerY = rect.height / 2;
+      ctx.clearRect(0, 0, width, height);
 
-      // Calculate radius based on screen size
-      const radius = Math.min(rect.width, rect.height) * 0.35;
+      // Draw connections
+      nodes.forEach((node) => {
+        node.connections.forEach((connection) => {
+          const dx = connection.x - node.x;
+          const dy = connection.y - node.y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
 
-      // Rotate slowly
-      rotationRef.current += 0.003; // Slow rotation speed
+          ctx.beginPath();
+          ctx.moveTo(node.x, node.y);
+          ctx.lineTo(connection.x, connection.y);
 
-      icons.forEach((icon, index) => {
-        // Calculate angle for this icon
-        const angleOffset = (Math.PI * 2 / iconCount) * index;
-        const angle = rotationRef.current + angleOffset;
+          const opacity = Math.max(0.05, 0.2 - (distance / 400));
+          ctx.strokeStyle = `rgba(100, 150, 200, ${opacity})`;
+          ctx.lineWidth = 1;
+          ctx.stroke();
+        });
+      });
 
-        // Calculate position
-        const x = centerX + Math.cos(angle) * radius - 30; // -30 to center the icon
-        const y = centerY + Math.sin(angle) * radius - 30;
+      // Update and draw particles
+      particles.forEach((particle) => {
+        particle.update();
+        particle.draw(ctx);
+      });
 
-        // Apply position
-        icon.style.transform = `translate(${x}px, ${y}px)`;
-
-        // Subtle scale effect based on position (icons at top are slightly larger)
-        const normalizedY = (y - centerY) / radius;
-        const scale = 1 + (normalizedY * -0.2); // Icons at top (negative Y) are larger
-        const opacity = 0.7 + (normalizedY * -0.3); // Icons at top are more opaque
-
-        icon.style.transform = `translate(${x}px, ${y}px) scale(${scale})`;
-        icon.style.opacity = Math.max(0.4, Math.min(1, opacity));
+      // Update and draw nodes
+      nodes.forEach((node) => {
+        node.update();
+        node.draw(ctx);
       });
 
       animationRef.current = requestAnimationFrame(animate);
@@ -118,24 +211,30 @@ const SDGParticles = () => {
 
     animate();
 
+    // Handle resize
+    const handleResize = () => {
+      width = canvas.offsetWidth;
+      height = canvas.offsetHeight;
+      canvas.width = width;
+      canvas.height = height;
+    };
+
+    window.addEventListener('resize', handleResize);
+
     // Cleanup
     return () => {
+      window.removeEventListener('resize', handleResize);
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current);
       }
-      icons.forEach((icon) => {
-        if (icon.parentNode) {
-          icon.parentNode.removeChild(icon);
-        }
-      });
     };
   }, [imagesLoaded]);
 
   return (
-    <div
-      ref={containerRef}
+    <canvas
+      ref={canvasRef}
       className="absolute inset-0 w-full h-full"
-      style={{ opacity: 0.8 }}
+      style={{ opacity: 0.7 }}
     />
   );
 };
