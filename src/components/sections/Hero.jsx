@@ -4,17 +4,17 @@ import emotionGif from '../../assets/emotion recognition.webp';
 const Hero = () => {
   return (
     <section
-      className="relative min-h-screen flex items-center justify-center overflow-hidden"
+      className="relative min-h-screen flex items-center justify-center"
       style={{ backgroundColor: '#FAF5F0' }}
     >
-      <div className="relative z-10 max-w-7xl mx-auto px-6 sm:px-8 py-20">
-        <div className="flex flex-col lg:flex-row items-center justify-center gap-8 lg:gap-16">
+      <div className="relative z-10 max-w-7xl mx-auto px-6 sm:px-8 py-20 lg:py-20">
+        <div className="flex flex-col lg:flex-row items-center justify-center lg:gap-16">
           {/* GIF on the left */}
           <motion.div
             initial={{ opacity: 0, x: -50 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-            className="w-full lg:w-1/2 max-w-md"
+            className="w-full lg:w-1/2 max-w-xs lg:max-w-md"
           >
             <div
               style={{
@@ -33,7 +33,58 @@ const Hero = () => {
             </div>
           </motion.div>
 
-          {/* Handdrawn curved arrow - hidden on mobile, visible on desktop */}
+          {/* Mobile arrow - left-aligned, between image and text */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 1, delay: 0.5 }}
+            className="lg:hidden w-full flex justify-start pl-4"
+            style={{ marginLeft: '-70px' , marginBottom:'-23px' , marginTop:'-50px' }}
+          >
+            <svg
+              viewBox="90 135 85 215"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              style={{ width: '50px', height: '110px' }}
+            >
+              {/* Curved arrow pointing upward to image */}
+              <motion.path
+                d="M 131.41 344.017 C 113.5 340.435 102.414 315.417 96.154 300.214 C 77.956 256.018 98.308 208.316 130.342 176.282 C 141.994 164.63 157.482 156.62 168.803 145.299"
+                stroke="#0F172A"
+                strokeWidth="4"
+                strokeLinecap="round"
+                fill="none"
+                initial={{ pathLength: 0 }}
+                animate={{ pathLength: 1 }}
+                transition={{ duration: 1.5, delay: 0.8, ease: "easeInOut" }}
+                style={{
+                  filter: 'url(#roughen-mobile)',
+                }}
+              />
+              {/* Arrow head pointing upward */}
+              <motion.g
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.3, delay: 2.3 }}
+              >
+                <path
+                  d="M 134.615 139.957 C 140.67 139.957 146.724 139.957 152.778 139.957 C 177.4 139.957 177.02 136.676 168.803 161.325 C 166.675 167.709 165.598 172.823 165.598 179.487"
+                  stroke="#0F172A"
+                  strokeWidth="4"
+                  strokeLinecap="round"
+                  fill="none"
+                />
+              </motion.g>
+              <defs>
+                <filter id="roughen-mobile">
+                  <feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="2" result="noise" />
+                  <feDisplacementMap in="SourceGraphic" in2="noise" scale="1" />
+                </filter>
+              </defs>
+            </svg>
+          </motion.div>
+
+          {/* Desktop curved arrow - hidden on mobile, visible on desktop */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -58,7 +109,7 @@ const Hero = () => {
                 animate={{ pathLength: 1 }}
                 transition={{ duration: 1.5, delay: 0.8, ease: "easeInOut" }}
                 style={{
-                  filter: 'url(#roughen)',
+                  filter: 'url(#roughen-desktop)',
                 }}
               />
               {/* Arrow head pointing right */}
@@ -76,7 +127,7 @@ const Hero = () => {
                 />
               </motion.g>
               <defs>
-                <filter id="roughen">
+                <filter id="roughen-desktop">
                   <feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="2" result="noise" />
                   <feDisplacementMap in="SourceGraphic" in2="noise" scale="1" />
                 </filter>
@@ -120,7 +171,7 @@ const Hero = () => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 2, duration: 1 }}
-          className="absolute bottom-8 left-1/2 transform -translate-x-1/2"
+          className="absolute bottom-4 lg:bottom-8 left-1/2 transform -translate-x-1/2"
         >
           <a
             href="#about"
