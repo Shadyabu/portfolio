@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import emotionGif from '../../assets/emotion recognition color background.gif';
+import emotionGif from '../../assets/emotion recognition.webp';
 
 const Hero = () => {
   return (
