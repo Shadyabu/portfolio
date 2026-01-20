@@ -89,20 +89,20 @@ const Hero = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 1, delay: 0.5 }}
-            className="hidden lg:block relative"
-            style={{ width: '120px', height: '120px' }}
+            className="hidden lg:block relative self-start"
+            style={{ width: '220px', height: '220px', marginRight: '-130px' , marginTop:'-30px'}}
           >
             <svg
-              viewBox="0 0 150 120"
+              viewBox="40 60 380 300"
               fill="none"
               xmlns="http://www.w3.org/2000/svg"
               style={{ width: '100%', height: '100%' }}
             >
               {/* Curved handdrawn arrow pointing right */}
               <motion.path
-                d="M 20 60 Q 75 30, 130 60"
+                d="M 365.365 304.287 C 365.365 272.304 371.207 234.119 359.37 203.869 C 340.598 155.896 268.733 126.485 222.981 115.441 C 190.762 107.664 159.659 109.57 128.558 119.937 C 123.649 121.574 98.583 136.424 98.583 136.424 C 97.064 138.702 77.6 149.913 77.6 149.913"
                 stroke="#0F172A"
-                strokeWidth="3"
+                strokeWidth="4"
                 strokeLinecap="round"
                 fill="none"
                 initial={{ pathLength: 0 }}
@@ -119,9 +119,9 @@ const Hero = () => {
                 transition={{ duration: 0.3, delay: 2 }}
               >
                 <path
-                  d="M 130 60 L 125 50 M 130 60 L 120 64"
+                  d="M 85.094 91.461 C 85.094 107.964 74.603 123.228 74.603 139.421 C 74.603 139.727 71.492 155.908 71.605 155.908 C 81.586 155.908 92.841 151.375 103.079 149.913 C 112.988 148.497 123.588 147.073 133.055 143.918"
                   stroke="#0F172A"
-                  strokeWidth="3"
+                  strokeWidth="4"
                   strokeLinecap="round"
                   fill="none"
                 />
@@ -171,7 +171,7 @@ const Hero = () => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 2, duration: 1 }}
-          className="absolute bottom-4 lg:bottom-8 left-1/2 transform -translate-x-1/2"
+          className="absolute bottom-4 lg:bottom-1 left-1/2 transform -translate-x-1/2"
         >
           <a
             href="#about"
