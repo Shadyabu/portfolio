@@ -1,36 +1,22 @@
 @import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Source+Sans+3:wght@400;500;600&family=Mouse+Memoirs&display=swap');
 
 @theme {
-  --color-primary-50: #f0fdf4;
-  --color-primary-100: #dcfce7;
-  --color-primary-200: #bbf7d0;
-  --color-primary-300: #86efac;
-  --color-primary-400: #4ade80;
-  --color-primary-500: #22c55e;
-  --color-primary-600: #16a34a;
-  --color-primary-700: #15803d;
-  --color-primary-800: #166534;
-  --color-primary-900: #14532d;
+  /* Design System Colors */
+  --color-off-white: #FAF5F0;
+  --color-charcoal: #0F172A;
+  --color-soft-sand: #D6C9A1;
 
-  --color-accent-50: #ecfeff;
-  --color-accent-100: #cffafe;
-  --color-accent-200: #a5f3fc;
-  --color-accent-300: #67e8f9;
-  --color-accent-400: #22d3ee;
-  --color-accent-500: #06b6d4;
-  --color-accent-600: #0891b2;
-  --color-accent-700: #0e7490;
-  --color-accent-800: #155e75;
-  --color-accent-900: #164e63;
-
-  --font-family-sans: 'Inter', system-ui, sans-serif;
-  --font-family-mono: 'Fira Code', monospace;
+  /* Font Families */
+  --font-family-primary: 'Inter', system-ui, sans-serif;
+  --font-family-secondary: 'Source Sans 3', sans-serif;
+  --font-family-handdrawn: 'Mouse Memoirs', cursive;
 }
 
 @layer base {
   :root {
-    font-family: var(--font-family-sans);
-    line-height: 1.5;
+    font-family: var(--font-family-secondary);
+    line-height: 1.6;
     font-weight: 400;
     font-synthesis: none;
     text-rendering: optimizeLegibility;
@@ -39,10 +25,17 @@
   }
 
   body {
-    @apply bg-gray-50 text-gray-900;
+    background-color: var(--color-off-white);
+    color: var(--color-charcoal);
     margin: 0;
     min-width: 320px;
     min-height: 100vh;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-family-primary);
+    font-weight: 500;
+    letter-spacing: -0.02em;
   }
 
   * {
@@ -52,14 +45,41 @@
 
 @layer components {
   .section-container {
-    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 5rem 1.5rem;
   }
 
   .section-title {
-    @apply text-3xl md:text-4xl font-bold text-gray-900 mb-8;
+    font-family: var(--font-family-primary);
+    font-size: 2.5rem;
+    font-weight: 500;
+    color: var(--color-charcoal);
+    margin-bottom: 1rem;
+    letter-spacing: -0.02em;
   }
 
   .section-subtitle {
-    @apply text-lg md:text-xl text-gray-600 mb-12;
+    font-family: var(--font-family-secondary);
+    font-size: 1.125rem;
+    color: var(--color-charcoal);
+    opacity: 0.75;
+    margin-bottom: 3rem;
+  }
+
+  .btn-primary {
+    display: inline-block;
+    padding: 0.75rem 2rem;
+    background-color: var(--color-charcoal);
+    color: var(--color-off-white);
+    font-family: var(--font-family-secondary);
+    font-weight: 500;
+    border-radius: 0.5rem;
+    transition: background-color 0.2s ease;
+    text-decoration: none;
+  }
+
+  .btn-primary:hover {
+    background-color: #1e293b;
   }
 }

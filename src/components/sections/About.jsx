@@ -2,7 +2,7 @@ import { motion } from 'framer-motion';
 
 const About = () => {
   return (
-    <section id="about" className="section-container bg-white">
+    <section id="about" className="section-container" style={{ backgroundColor: '#FFFFFF' }}>
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
@@ -12,7 +12,7 @@ const About = () => {
         <h2 className="section-title">About Me</h2>
 
         <div className="grid md:grid-cols-2 gap-12 items-center">
-          <div className="space-y-4 text-gray-700 leading-relaxed">
+          <div className="space-y-4 leading-relaxed" style={{ color: '#0F172A', opacity: 0.8 }}>
             <p>
               I'm an AI Engineer with a passion for leveraging machine learning to address
               real-world challenges in sustainable development and climate action.
@@ -38,27 +38,27 @@ const About = () => {
             </p>
           </div>
 
-          <div className="bg-gradient-to-br from-primary-50 to-accent-50 p-8 rounded-2xl">
-            <h3 className="text-2xl font-bold text-gray-900 mb-6">Quick Facts</h3>
+          <div className="p-8 rounded-2xl" style={{ background: 'linear-gradient(to bottom right, #FAF5F0, #F5EFE6)', border: '1px solid #D6C9A1' }}>
+            <h3 className="text-2xl font-bold mb-6" style={{ color: '#0F172A' }}>Quick Facts</h3>
             <ul className="space-y-4">
               <li className="flex items-start">
-                <span className="text-primary-600 font-bold mr-2">📍</span>
+                <span className="font-bold mr-2" style={{ color: '#D6C9A1' }}>📍</span>
                 <span>Based in London, UK</span>
               </li>
               <li className="flex items-start">
-                <span className="text-primary-600 font-bold mr-2">🎓</span>
+                <span className="font-bold mr-2" style={{ color: '#D6C9A1' }}>🎓</span>
                 <span>MSc Machine Learning @ UCL</span>
               </li>
               <li className="flex items-start">
-                <span className="text-primary-600 font-bold mr-2">💼</span>
+                <span className="font-bold mr-2" style={{ color: '#D6C9A1' }}>💼</span>
                 <span>6 years consulting experience</span>
               </li>
               <li className="flex items-start">
-                <span className="text-primary-600 font-bold mr-2">🌍</span>
+                <span className="font-bold mr-2" style={{ color: '#D6C9A1' }}>🌍</span>
                 <span>Focus on AI for Sustainability</span>
               </li>
               <li className="flex items-start">
-                <span className="text-primary-600 font-bold mr-2">🤖</span>
+                <span className="font-bold mr-2" style={{ color: '#D6C9A1' }}>🤖</span>
                 <span>Deep Learning & NLP Specialist</span>
               </li>
             </ul>

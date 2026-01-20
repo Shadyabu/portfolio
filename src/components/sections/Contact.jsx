@@ -18,7 +18,7 @@ const Contact = () => {
   ];
 
   return (
-    <section id="contact" className="section-container bg-white">
+    <section id="contact" className="section-container" style={{ backgroundColor: '#FFFFFF' }}>
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
@@ -45,24 +45,27 @@ const Contact = () => {
                     href={method.href}
                     target={method.href.startsWith('http') ? '_blank' : undefined}
                     rel={method.href.startsWith('http') ? 'noopener noreferrer' : undefined}
-                    className="flex items-center p-6 bg-gray-50 rounded-xl hover:bg-primary-50 hover:border-primary-300 border-2 border-transparent transition-all duration-200 group"
+                    className="flex items-center p-6 rounded-xl border-2 transition-all duration-200 group"
+                    style={{ backgroundColor: '#FAF5F0', borderColor: 'transparent' }}
+                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#F5EFE6'; e.currentTarget.style.borderColor = '#D6C9A1'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#FAF5F0'; e.currentTarget.style.borderColor = 'transparent'; }}
                   >
-                    <div className="flex-shrink-0 w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center group-hover:bg-primary-200 transition-colors">
-                      <method.icon className="text-primary-600" size={24} />
+                    <div className="flex-shrink-0 w-12 h-12 rounded-lg flex items-center justify-center transition-colors" style={{ backgroundColor: '#F5EFE6' }}>
+                      <method.icon size={24} style={{ color: '#0F172A' }} />
                     </div>
                     <div className="ml-4">
-                      <p className="text-sm text-gray-600">{method.label}</p>
-                      <p className="text-gray-900 font-medium">{method.value}</p>
+                      <p className="text-sm" style={{ color: '#0F172A', opacity: 0.6 }}>{method.label}</p>
+                      <p className="font-medium" style={{ color: '#0F172A' }}>{method.value}</p>
                     </div>
                   </a>
                 ) : (
-                  <div className="flex items-center p-6 bg-gray-50 rounded-xl border-2 border-transparent">
-                    <div className="flex-shrink-0 w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center">
-                      <method.icon className="text-primary-600" size={24} />
+                  <div className="flex items-center p-6 rounded-xl border-2" style={{ backgroundColor: '#FAF5F0', borderColor: 'transparent' }}>
+                    <div className="flex-shrink-0 w-12 h-12 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#F5EFE6' }}>
+                      <method.icon size={24} style={{ color: '#0F172A' }} />
                     </div>
                     <div className="ml-4">
-                      <p className="text-sm text-gray-600">{method.label}</p>
-                      <p className="text-gray-900 font-medium">{method.value}</p>
+                      <p className="text-sm" style={{ color: '#0F172A', opacity: 0.6 }}>{method.label}</p>
+                      <p className="font-medium" style={{ color: '#0F172A' }}>{method.value}</p>
                     </div>
                   </div>
                 )}
@@ -77,14 +80,17 @@ const Contact = () => {
             viewport={{ once: true }}
             className="mt-12 text-center"
           >
-            <p className="text-gray-700 mb-6">
+            <p className="mb-6" style={{ color: '#0F172A', opacity: 0.8 }}>
               Open to opportunities in AI Engineering, Machine Learning Research,
               and Climate Tech positions.
             </p>
             <a
               href="/resume.pdf"
               download
-              className="inline-block px-8 py-3 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 transition-colors duration-200"
+              className="inline-block px-8 py-3 rounded-lg font-medium transition-colors duration-200"
+              style={{ backgroundColor: '#0F172A', color: '#FAF5F0' }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#1e293b'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#0F172A'}
             >
               Download Resume
             </a>
