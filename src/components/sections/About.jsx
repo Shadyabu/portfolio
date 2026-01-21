@@ -280,14 +280,16 @@ const About = () => {
                   whileHover={{
                     scale: 1.05,
                     rotate: 0,
-                    zIndex: 10,
                     transition: { duration: 0.3 }
                   }}
+                  whileTap={{ scale: 0.95 }}
                   style={{
                     position: 'relative',
-                    cursor: 'pointer'
+                    cursor: 'pointer',
+                    touchAction: 'manipulation'
                   }}
                   onClick={() => setSelectedImage(image)}
+                  onTap={() => setSelectedImage(image)}
                 >
                   <div
                     style={{
@@ -299,7 +301,8 @@ const About = () => {
                       padding: '0.75rem',
                       boxShadow: '6px 6px 0px rgba(214, 201, 161, 0.3)',
                       transition: 'all 0.3s ease',
-                      overflow: 'hidden'
+                      overflow: 'hidden',
+                      pointerEvents: 'none'
                     }}
                   >
                     <div
@@ -327,7 +330,8 @@ const About = () => {
                       backgroundColor: 'rgba(214, 201, 161, 0.4)',
                       border: '1px solid rgba(214, 201, 161, 0.6)',
                       borderRadius: '2px',
-                      opacity: 0.7
+                      opacity: 0.7,
+                      pointerEvents: 'none'
                     }}
                   />
                 </motion.div>
