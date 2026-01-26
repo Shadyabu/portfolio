@@ -10,7 +10,6 @@ const Navbar = () => {
     { name: 'Projects', href: '#projects' },
     { name: 'Skills', href: '#skills' },
     { name: 'Experience', href: '#experience' },
-    { name: 'Contact', href: '#contact' },
   ];
 
   return (
@@ -37,7 +36,7 @@ const Navbar = () => {
             whileHover={{ scale: 1.05, rotate: 2 }}
             whileTap={{ scale: 0.95 }}
           >
-            SA
+            Shady Abushady
           </motion.a>
 
           {/* Desktop Navigation with playful design */}

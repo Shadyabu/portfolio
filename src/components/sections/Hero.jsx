@@ -26,7 +26,7 @@ const Hero = () => {
             >
               <img
                 src={emotionGif}
-                alt="Emotion Recognition Demo"
+                alt="Emotion Recognition Video of my face"
                 className="w-full h-auto"
                 style={{ display: 'block' }}
               />
