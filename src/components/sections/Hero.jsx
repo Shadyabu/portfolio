@@ -108,6 +108,7 @@ const Hero = () => {
 
   // Debug frame counter
   const frameCountRef = useRef(0);
+  const lastPredictionUpdateRef = useRef(0);
 
   // Process video frame
   const processFrame = useCallback(async () => {
@@ -221,14 +222,22 @@ const Hero = () => {
           const prediction = await modelRef.current.predict(tensor).data();
           tensor.dispose();
 
-          setPredictions(Array.from(prediction));
+          const now = Date.now();
+          if (now - lastPredictionUpdateRef.current >= 300) {
+            lastPredictionUpdateRef.current = now;
+            setPredictions(Array.from(prediction));
+          }
         } else {
-          const demoProbs = EMOTIONS.map((_, i) => {
-            const base = Math.sin(Date.now() / 1000 + i * 0.8) * 0.3 + 0.5;
-            return Math.max(0.05, Math.min(0.95, base * (0.5 + Math.random() * 0.5)));
-          });
-          const sum = demoProbs.reduce((a, b) => a + b, 0);
-          setPredictions(demoProbs.map(p => p / sum));
+          const now = Date.now();
+          if (now - lastPredictionUpdateRef.current >= 1000) {
+            lastPredictionUpdateRef.current = now;
+            const demoProbs = EMOTIONS.map((_, i) => {
+              const base = Math.sin(now / 1000 + i * 0.8) * 0.3 + 0.5;
+              return Math.max(0.05, Math.min(0.95, base * (0.5 + Math.random() * 0.5)));
+            });
+            const sum = demoProbs.reduce((a, b) => a + b, 0);
+            setPredictions(demoProbs.map(p => p / sum));
+          }
         }
       } else {
         setPredictions(null);
@@ -320,7 +329,7 @@ const Hero = () => {
                 style={{ display: 'block' }}
               />
             </div>
-            {/* Try it yourself button */}
+            {/* Try it yourself button - Desktop only */}
             <motion.button
               onClick={openModal}
               initial={{ opacity: 0, y: 10 }}
@@ -328,6 +337,7 @@ const Hero = () => {
               transition={{ duration: 0.5, delay: 0.6 }}
               whileHover={{ scale: 1.03, y: -2 }}
               whileTap={{ scale: 0.97 }}
+              className="hidden lg:flex"
               style={{
                 marginTop: '1rem',
                 width: '100%',
@@ -341,7 +351,6 @@ const Hero = () => {
                 letterSpacing: '0.02em',
                 cursor: 'pointer',
                 boxShadow: '4px 4px 0px rgba(214, 201, 161, 0.5)',
-                display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: '0.5rem'
@@ -482,6 +491,34 @@ const Hero = () => {
             >
               AI/ML Engineer
             </p>
+            {/* Try it yourself button - Mobile only */}
+            <motion.button
+              onClick={openModal}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.6 }}
+              whileTap={{ scale: 0.97 }}
+              className="flex lg:hidden items-center justify-center gap-2 mx-auto"
+              style={{
+                marginTop: '1rem',
+                marginBottom:'1rem',
+                width: '100%',
+                maxWidth: '280px',
+                padding: '0.75rem 1.5rem',
+                backgroundColor: '#0F172A',
+                color: '#FFFFFF',
+                border: 'none',
+                borderRadius: '0.75rem',
+                fontFamily: "'Mouse Memoirs', cursive",
+                fontSize: '1.25rem',
+                letterSpacing: '0.02em',
+                cursor: 'pointer',
+                boxShadow: '4px 4px 0px rgba(214, 201, 161, 0.5)'
+              }}
+            >
+              <Camera size={20} />
+              Try it yourself!
+            </motion.button>
           </motion.div>
         </div>
 
@@ -701,16 +738,17 @@ const Hero = () => {
                       gap: '1.5rem'
                     }}
                   >
-                    {/* Video container */}
-                    <div
-                      style={{
-                        position: 'relative',
-                        backgroundColor: '#0F172A',
-                        borderRadius: '0.75rem',
-                        overflow: 'hidden',
-                        aspectRatio: '4/3'
-                      }}
-                    >
+                    {/* Video container wrapper */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                      <div
+                        style={{
+                          position: 'relative',
+                          backgroundColor: '#0F172A',
+                          borderRadius: '0.75rem',
+                          overflow: 'hidden',
+                          aspectRatio: '4/3'
+                        }}
+                      >
                       <video
                         ref={videoRef}
                         autoPlay
@@ -755,6 +793,16 @@ const Hero = () => {
                           Position your face in the frame
                         </div>
                       )}
+                      </div>
+                      <p style={{
+                        fontSize: '1.5rem',
+                        color: '#0F172A',
+                        opacity: 0.6,
+                        textAlign: 'center',
+                        fontFamily:"'Mouse Memoirs'"
+                      }}>
+                        Tip: Happy, sad, and neutral work best with the webcam
+                      </p>
                     </div>
 
                     {/* Predictions panel */}
