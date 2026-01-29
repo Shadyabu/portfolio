@@ -10,6 +10,7 @@ const EMOTIONS = ['angry', 'disgusted', 'neutral', 'happy', 'fearful', 'sad', 's
 const Hero = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isVideoReady, setIsVideoReady] = useState(false);
   const [error, setError] = useState(null);
   const [modelsLoaded, setModelsLoaded] = useState(false);
   const [predictions, setPredictions] = useState(null);
@@ -109,6 +110,7 @@ const Hero = () => {
   // Debug frame counter
   const frameCountRef = useRef(0);
   const lastPredictionUpdateRef = useRef(0);
+  const videoReadyRef = useRef(false);
 
   // Process video frame
   const processFrame = useCallback(async () => {
@@ -123,12 +125,15 @@ const Hero = () => {
 
     // Wait for video to be ready with valid dimensions
     if (video.readyState < 2 || video.videoWidth === 0 || video.videoHeight === 0) {
-      // Log only once every 60 frames to avoid flooding console
-      if (frameCountRef.current % 60 === 0) {
-      }
       frameCountRef.current++;
       animationRef.current = requestAnimationFrame(processFrame);
       return;
+    }
+
+    // Mark video as ready once it's fully loaded
+    if (!videoReadyRef.current) {
+      videoReadyRef.current = true;
+      setIsVideoReady(true);
     }
 
     // Set canvas size to match video
@@ -254,6 +259,8 @@ const Hero = () => {
     setIsModalOpen(true);
     setError(null);
     setPredictions(null);
+    setIsVideoReady(false);
+    videoReadyRef.current = false;
 
     if (!modelsLoaded) {
       await loadModels();
@@ -271,6 +278,8 @@ const Hero = () => {
     setIsModalOpen(false);
     setPredictions(null);
     setError(null);
+    setIsVideoReady(false);
+    videoReadyRef.current = false;
   }, [stopCamera]);
 
   // Handle escape key
@@ -653,6 +662,7 @@ const Hero = () => {
               <div style={{ padding: '2rem' }}>
                 <h3
                   id="demo-modal-title"
+                  className="hidden lg:block"
                   style={{
                     fontFamily: "'Mouse Memoirs', cursive",
                     fontSize: 'clamp(1.75rem, 4vw, 2.5rem)',
@@ -776,7 +786,36 @@ const Hero = () => {
                         }}
                       />
 
-                      {modelsLoaded && !predictions && (
+                      {/* Loading overlay while video initializes */}
+                      {!isVideoReady && (
+                        <div
+                          style={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            backgroundColor: '#0F172A',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '1rem'
+                          }}
+                        >
+                          <motion.div
+                            animate={{ rotate: 360 }}
+                            transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                          >
+                            <Loader2 size={32} color="#FFFFFF" />
+                          </motion.div>
+                          <p style={{ color: '#FFFFFF', opacity: 0.7, fontSize: '0.9rem' }}>
+                            Starting camera...
+                          </p>
+                        </div>
+                      )}
+
+                      {isVideoReady && modelsLoaded && !predictions && (
                         <div
                           style={{
                             position: 'absolute',
@@ -794,15 +833,19 @@ const Hero = () => {
                         </div>
                       )}
                       </div>
-                      <p style={{
-                        fontSize: '1.5rem',
-                        color: '#0F172A',
-                        opacity: 0.6,
-                        textAlign: 'center',
-                        fontFamily:"'Mouse Memoirs'"
-                      }}>
-                        Tip: Happy, sad, and neutral work best with the webcam
-                      </p>
+                      {isVideoReady && (
+                        <p
+                          className="text-sm lg:text-2xl"
+                          style={{
+                            color: '#0F172A',
+                            opacity: 0.6,
+                            textAlign: 'center',
+                            fontFamily:"'Mouse Memoirs'"
+                          }}
+                        >
+                          Tip: Happy, sad, and neutral work best with the webcam
+                        </p>
+                      )}
                     </div>
 
                     {/* Predictions panel */}
