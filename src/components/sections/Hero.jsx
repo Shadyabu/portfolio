@@ -1,11 +1,19 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import * as tf from '@tensorflow/tfjs';
-import * as faceapi from '@vladmandic/face-api';
+import * as blazeface from '@tensorflow-models/blazeface';
 import { Camera, X, AlertCircle, Loader2 } from 'lucide-react';
 import emotionGif from '../../assets/emotion recognition.webp';
 
-const EMOTIONS = ['angry', 'disgusted', 'neutral', 'happy', 'fearful', 'sad', 'surprised'];
+// Emotion labels in correct order matching trained model output
+const EMOTIONS = ['angry', 'disgusted', 'fearful', 'happy', 'neutral', 'sad', 'surprised'];
+
+// Processing constants
+const DISPLAY_WIDTH = 1280;
+const DISPLAY_HEIGHT = 720;
+const PROCESS_WIDTH = 320;
+const PROCESS_HEIGHT = 240;
+const FRAME_SKIP = 3; // Process every 3rd frame for performance
 
 const Hero = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -17,35 +25,50 @@ const Hero = () => {
   const [cameraPermission, setCameraPermission] = useState('prompt');
 
   const videoRef = useRef(null);
-  const canvasRef = useRef(null);
+  const processingCanvasRef = useRef(null); // Hidden 320x240 canvas for ML processing
+  const overlayCanvasRef = useRef(null); // Visible canvas for face box overlay
   const streamRef = useRef(null);
   const modelRef = useRef(null);
+  const faceDetectorRef = useRef(null); // BlazeFace model
   const animationRef = useRef(null);
   const modalRef = useRef(null);
   const modelsLoadedRef = useRef(false); // Ref to avoid stale closure issues
 
-  // Load face-api models
+  // Load BlazeFace and emotion models
   const loadModels = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
 
-      const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/model';
+      // Load BlazeFace for face detection (~200KB, fast)
+      faceDetectorRef.current = await blazeface.load();
 
-      await Promise.all([
-        faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
-        faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
-      ]);
-      
+      // Load emotion model
       try {
         const modelPath = `${import.meta.env.BASE_URL}models/emotion_model/model.json`;
         modelRef.current = await tf.loadGraphModel(modelPath);
+
+        // Warm up emotion model to prevent first-frame lag
+        const dummyInput = tf.zeros([1, 224, 224, 3]);
+        const dummyOutput = modelRef.current.predict(dummyInput);
+        if (Array.isArray(dummyOutput)) {
+          dummyOutput.forEach(t => t.dispose());
+        } else {
+          dummyOutput.dispose();
+        }
+        dummyInput.dispose();
       } catch (modelError) {
         console.warn('Custom emotion model not found, using demo mode:', modelError);
         modelRef.current = null;
       }
 
-      modelsLoadedRef.current = true; // Update ref synchronously
+      // Warm up BlazeFace
+      const warmupCanvas = document.createElement('canvas');
+      warmupCanvas.width = PROCESS_WIDTH;
+      warmupCanvas.height = PROCESS_HEIGHT;
+      await faceDetectorRef.current.estimateFaces(warmupCanvas, false);
+
+      modelsLoadedRef.current = true;
       setModelsLoaded(true);
     } catch (err) {
       console.error('Error loading models:', err);
@@ -55,17 +78,18 @@ const Hero = () => {
     }
   }, []);
 
-  // Start webcam
+  // Start webcam at high resolution for display
   const startCamera = useCallback(async () => {
     try {
       setError(null);
 
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
-          width: { ideal: 640 },
-          height: { ideal: 480 },
+          width: { ideal: DISPLAY_WIDTH },
+          height: { ideal: DISPLAY_HEIGHT },
           facingMode: 'user'
-        }
+        },
+        audio: false
       });
 
       streamRef.current = stream;
@@ -107,25 +131,26 @@ const Hero = () => {
     }
   }, []);
 
-  // Debug frame counter
+  // Frame counter for frame skipping
   const frameCountRef = useRef(0);
-  const lastPredictionUpdateRef = useRef(0);
   const videoReadyRef = useRef(false);
+  const predictionHistoryRef = useRef([]); // For temporal smoothing
 
-  // Process video frame
+  // Process video frame with dual resolution and frame skipping
   const processFrame = useCallback(async () => {
-    if (!videoRef.current || !canvasRef.current || !modelsLoadedRef.current) {
+    if (!videoRef.current || !overlayCanvasRef.current || !processingCanvasRef.current || !modelsLoadedRef.current) {
       animationRef.current = requestAnimationFrame(processFrame);
       return;
     }
 
     const video = videoRef.current;
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
+    const overlayCanvas = overlayCanvasRef.current;
+    const processingCanvas = processingCanvasRef.current;
+    const overlayCtx = overlayCanvas.getContext('2d');
+    const processingCtx = processingCanvas.getContext('2d');
 
     // Wait for video to be ready with valid dimensions
     if (video.readyState < 2 || video.videoWidth === 0 || video.videoHeight === 0) {
-      frameCountRef.current++;
       animationRef.current = requestAnimationFrame(processFrame);
       return;
     }
@@ -136,113 +161,168 @@ const Hero = () => {
       setIsVideoReady(true);
     }
 
-    // Set canvas size to match video
-    if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
+    // Set overlay canvas size to match video for proper face box display
+    if (overlayCanvas.width !== video.videoWidth || overlayCanvas.height !== video.videoHeight) {
+      overlayCanvas.width = video.videoWidth;
+      overlayCanvas.height = video.videoHeight;
     }
 
-    // Clear canvas (transparent overlay)
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    // Ensure processing canvas is set to low resolution
+    if (processingCanvas.width !== PROCESS_WIDTH || processingCanvas.height !== PROCESS_HEIGHT) {
+      processingCanvas.width = PROCESS_WIDTH;
+      processingCanvas.height = PROCESS_HEIGHT;
+    }
+
+    frameCountRef.current++;
+
+    // Always request next frame to keep video smooth
+    animationRef.current = requestAnimationFrame(processFrame);
+
+    // Only run ML processing on every Nth frame for performance
+    if (frameCountRef.current % FRAME_SKIP !== 0) {
+      return;
+    }
+
+    // Clear overlay canvas
+    overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
 
     try {
-      const detections = await faceapi.detectAllFaces(
-        video,
-        new faceapi.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: 0.2 })
-      );
+      // Draw video to low-resolution processing canvas
+      processingCtx.drawImage(video, 0, 0, PROCESS_WIDTH, PROCESS_HEIGHT);
 
-      // Log detection results periodically
-      if (frameCountRef.current % 30 === 0) {
-      }
-      frameCountRef.current++;
+      // Run BlazeFace on the small processing canvas
+      const predictions = await faceDetectorRef.current.estimateFaces(processingCanvas, false);
 
-      if (detections.length > 0) {
-        const detection = detections[0];
-        const box = detection.box;
+      if (predictions.length > 0) {
+        const prediction = predictions[0];
+
+        // Get face box in processing canvas coordinates (320x240)
+        const procX = prediction.topLeft[0];
+        const procY = prediction.topLeft[1];
+        const procWidth = prediction.bottomRight[0] - prediction.topLeft[0];
+        const procHeight = prediction.bottomRight[1] - prediction.topLeft[1];
+
+        // Scale coordinates from processing canvas to display canvas
+        const scaleX = video.videoWidth / PROCESS_WIDTH;
+        const scaleY = video.videoHeight / PROCESS_HEIGHT;
+
+        const displayX = procX * scaleX;
+        const displayY = procY * scaleY;
+        const displayWidth = procWidth * scaleX;
+        const displayHeight = procHeight * scaleY;
 
         // Mirror the x coordinate since the video display is mirrored
-        const mirroredX = canvas.width - box.x - box.width;
+        const mirroredX = overlayCanvas.width - displayX - displayWidth;
 
         // Draw face box with prominent styling
-        ctx.strokeStyle = '#D6C9A1';
-        ctx.lineWidth = 4;
-        ctx.strokeRect(mirroredX, box.y, box.width, box.height);
+        overlayCtx.strokeStyle = '#D6C9A1';
+        overlayCtx.lineWidth = 4;
+        overlayCtx.strokeRect(mirroredX, displayY, displayWidth, displayHeight);
 
         // Add corner accents
         const cornerSize = 15;
-        ctx.strokeStyle = '#F59E0B';
-        ctx.lineWidth = 4;
+        overlayCtx.strokeStyle = '#F59E0B';
+        overlayCtx.lineWidth = 4;
 
         // Top-left corner
-        ctx.beginPath();
-        ctx.moveTo(mirroredX, box.y + cornerSize);
-        ctx.lineTo(mirroredX, box.y);
-        ctx.lineTo(mirroredX + cornerSize, box.y);
-        ctx.stroke();
+        overlayCtx.beginPath();
+        overlayCtx.moveTo(mirroredX, displayY + cornerSize);
+        overlayCtx.lineTo(mirroredX, displayY);
+        overlayCtx.lineTo(mirroredX + cornerSize, displayY);
+        overlayCtx.stroke();
 
         // Top-right corner
-        ctx.beginPath();
-        ctx.moveTo(mirroredX + box.width - cornerSize, box.y);
-        ctx.lineTo(mirroredX + box.width, box.y);
-        ctx.lineTo(mirroredX + box.width, box.y + cornerSize);
-        ctx.stroke();
+        overlayCtx.beginPath();
+        overlayCtx.moveTo(mirroredX + displayWidth - cornerSize, displayY);
+        overlayCtx.lineTo(mirroredX + displayWidth, displayY);
+        overlayCtx.lineTo(mirroredX + displayWidth, displayY + cornerSize);
+        overlayCtx.stroke();
 
         // Bottom-left corner
-        ctx.beginPath();
-        ctx.moveTo(mirroredX, box.y + box.height - cornerSize);
-        ctx.lineTo(mirroredX, box.y + box.height);
-        ctx.lineTo(mirroredX + cornerSize, box.y + box.height);
-        ctx.stroke();
+        overlayCtx.beginPath();
+        overlayCtx.moveTo(mirroredX, displayY + displayHeight - cornerSize);
+        overlayCtx.lineTo(mirroredX, displayY + displayHeight);
+        overlayCtx.lineTo(mirroredX + cornerSize, displayY + displayHeight);
+        overlayCtx.stroke();
 
         // Bottom-right corner
-        ctx.beginPath();
-        ctx.moveTo(mirroredX + box.width - cornerSize, box.y + box.height);
-        ctx.lineTo(mirroredX + box.width, box.y + box.height);
-        ctx.lineTo(mirroredX + box.width, box.y + box.height - cornerSize);
-        ctx.stroke();
+        overlayCtx.beginPath();
+        overlayCtx.moveTo(mirroredX + displayWidth - cornerSize, displayY + displayHeight);
+        overlayCtx.lineTo(mirroredX + displayWidth, displayY + displayHeight);
+        overlayCtx.lineTo(mirroredX + displayWidth, displayY + displayHeight - cornerSize);
+        overlayCtx.stroke();
 
+        // Run emotion prediction if model is loaded
         if (modelRef.current) {
-          const faceCanvas = document.createElement('canvas');
-          faceCanvas.width = 48;
-          faceCanvas.height = 48;
-          const faceCtx = faceCanvas.getContext('2d');
+          // Add padding to approximate Haar Cascade's larger bounding boxes
+          // BlazeFace gives tight face crops, Haar includes more head/forehead
+          const paddingX = -0.06;
+          const paddingY = 0.45;
+          const padX = procWidth * paddingX;
+          const padY = procHeight * paddingY;
 
-          faceCtx.drawImage(
-            video,
-            box.x, box.y, box.width, box.height,
+          const cropX = Math.max(0, procX - padX);
+          const cropY = Math.max(0, procY - padY);
+          const cropWidth = Math.min(PROCESS_WIDTH - cropX, procWidth + padX * 2);
+          const cropHeight = Math.min(PROCESS_HEIGHT - cropY, procHeight + padY * 2);
+
+          // Step 1: Resize face to 48x48 (matching FER2013/Python preprocessing)
+          const face48Canvas = document.createElement('canvas');
+          face48Canvas.width = 48;
+          face48Canvas.height = 48;
+          const face48Ctx = face48Canvas.getContext('2d');
+          face48Ctx.imageSmoothingEnabled = true;
+          face48Ctx.drawImage(
+            processingCanvas,
+            cropX, cropY, cropWidth, cropHeight,
             0, 0, 48, 48
           );
 
-          const resizeCanvas = document.createElement('canvas');
-          resizeCanvas.width = 224;
-          resizeCanvas.height = 224;
-          const resizeCtx = resizeCanvas.getContext('2d');
-          resizeCtx.drawImage(faceCanvas, 0, 0, 224, 224);
+          // Step 2: Upscale to 224x224 (MobileNet input size)
+          const face224Canvas = document.createElement('canvas');
+          face224Canvas.width = 224;
+          face224Canvas.height = 224;
+          const face224Ctx = face224Canvas.getContext('2d');
+          face224Ctx.imageSmoothingEnabled = true;
+          face224Ctx.drawImage(face48Canvas, 0, 0, 224, 224);
 
-          const tensor = tf.browser.fromPixels(resizeCanvas)
+          // Step 3: Convert to tensor and normalize (RGB, /255, matching Python)
+          const tensor = tf.browser.fromPixels(face224Canvas)
             .toFloat()
             .div(255.0)
             .expandDims(0);
-          
-          const prediction = await modelRef.current.predict(tensor).data();
-          tensor.dispose();
 
-          const now = Date.now();
-          if (now - lastPredictionUpdateRef.current >= 300) {
-            lastPredictionUpdateRef.current = now;
-            setPredictions(Array.from(prediction));
+          // Run prediction
+          const emotionPrediction = modelRef.current.predict(tensor);
+          const probabilities = await emotionPrediction.data();
+
+          // Clean up tensors
+          tensor.dispose();
+          emotionPrediction.dispose();
+
+          // Temporal smoothing: average over last N frames
+          const currentProbs = Array.from(probabilities);
+          predictionHistoryRef.current.push(currentProbs);
+          if (predictionHistoryRef.current.length > 5) {
+            predictionHistoryRef.current.shift();
           }
+
+          // Calculate smoothed average
+          const smoothed = currentProbs.map((_, i) => {
+            const sum = predictionHistoryRef.current.reduce((acc, probs) => acc + probs[i], 0);
+            return sum / predictionHistoryRef.current.length;
+          });
+
+          setPredictions(smoothed);
         } else {
+          // Demo mode with simulated predictions
           const now = Date.now();
-          if (now - lastPredictionUpdateRef.current >= 1000) {
-            lastPredictionUpdateRef.current = now;
-            const demoProbs = EMOTIONS.map((_, i) => {
-              const base = Math.sin(now / 1000 + i * 0.8) * 0.3 + 0.5;
-              return Math.max(0.05, Math.min(0.95, base * (0.5 + Math.random() * 0.5)));
-            });
-            const sum = demoProbs.reduce((a, b) => a + b, 0);
-            setPredictions(demoProbs.map(p => p / sum));
-          }
+          const demoProbs = EMOTIONS.map((_, i) => {
+            const base = Math.sin(now / 1000 + i * 0.8) * 0.3 + 0.5;
+            return Math.max(0.05, Math.min(0.95, base * (0.5 + Math.random() * 0.5)));
+          });
+          const sum = demoProbs.reduce((a, b) => a + b, 0);
+          setPredictions(demoProbs.map(p => p / sum));
         }
       } else {
         setPredictions(null);
@@ -250,8 +330,6 @@ const Hero = () => {
     } catch (err) {
       console.error('Frame processing error:', err);
     }
-
-    animationRef.current = requestAnimationFrame(processFrame);
   }, []); // Using refs instead of state to avoid stale closures
 
   // Handle modal open
@@ -774,8 +852,16 @@ const Hero = () => {
                           transform: 'scaleX(-1)'
                         }}
                       />
+                      {/* Hidden processing canvas for ML (320x240) */}
                       <canvas
-                        ref={canvasRef}
+                        ref={processingCanvasRef}
+                        width={PROCESS_WIDTH}
+                        height={PROCESS_HEIGHT}
+                        style={{ display: 'none' }}
+                      />
+                      {/* Visible overlay canvas for face box (matches video size) */}
+                      <canvas
+                        ref={overlayCanvasRef}
                         style={{
                           position: 'absolute',
                           top: 0,
@@ -843,7 +929,7 @@ const Hero = () => {
                             fontFamily:"'Mouse Memoirs'"
                           }}
                         >
-                          Tip: Happy, sad, and neutral work best with the webcam
+                          Tip: Happy, surprised, neutral and angry work best with the webcam
                         </p>
                       )}
                     </div>
@@ -857,6 +943,7 @@ const Hero = () => {
                         border: '2px solid #D6C9A1'
                       }}
                     >
+
                       <h4
                         style={{
                           fontFamily: "'Mouse Memoirs', cursive",

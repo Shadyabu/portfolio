@@ -54,7 +54,6 @@ const Footer = () => {
                 fontSize: '2rem',
                 color: '#FAF5F0',
                 letterSpacing: '0.02em',
-                marginBottom: '0.5rem'
               }}
             >
               Shady Abushady
@@ -138,28 +137,6 @@ const Footer = () => {
             viewport={{ once: true }}
           >
             <p
-              className="text-sm flex items-center justify-center gap-2"
-              style={{
-                color: '#FAF5F0',
-                opacity: 0.7
-              }}
-            >
-              Built with
-              <motion.span
-                animate={{
-                  scale: [1, 1.2, 1],
-                  transition: {
-                    duration: 1,
-                    repeat: Infinity,
-                    repeatDelay: 1
-                  }
-                }}
-              >
-                <Heart size={16} fill="#D6C9A1" color="#D6C9A1" />
-              </motion.span>
-              using React & AI
-            </p>
-            <p
               className="text-sm"
               style={{
                 color: '#FAF5F0',
@@ -169,63 +146,8 @@ const Footer = () => {
               © {currentYear} Shady Abushady. All rights reserved.
             </p>
           </motion.div>
-
-          {/* Decorative dots */}
-          <motion.div
-            className="flex gap-2 pt-2"
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 0.3 }}
-            transition={{ duration: 0.8, delay: 0.6 }}
-            viewport={{ once: true }}
-          >
-            {[1, 2, 3, 4, 5].map((dot, index) => (
-              <motion.div
-                key={dot}
-                style={{
-                  width: '6px',
-                  height: '6px',
-                  borderRadius: '50%',
-                  backgroundColor: '#D6C9A1'
-                }}
-                animate={{
-                  y: [0, -8, 0],
-                  transition: {
-                    duration: 1.5,
-                    repeat: Infinity,
-                    delay: index * 0.2
-                  }
-                }}
-              />
-            ))}
-          </motion.div>
         </div>
       </div>
-
-      {/* Decorative background elements */}
-      <div
-        style={{
-          position: 'absolute',
-          bottom: '-40px',
-          left: '-40px',
-          width: '120px',
-          height: '120px',
-          borderRadius: '50%',
-          backgroundColor: '#D6C9A1',
-          opacity: 0.05
-        }}
-      />
-      <div
-        style={{
-          position: 'absolute',
-          top: '-30px',
-          right: '-30px',
-          width: '100px',
-          height: '100px',
-          borderRadius: '50%',
-          backgroundColor: '#D6C9A1',
-          opacity: 0.05
-        }}
-      />
     </footer>
   );
 };

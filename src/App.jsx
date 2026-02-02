@@ -14,8 +14,8 @@ function App() {
         <Hero />
         <About />
         <Projects />
-        <Skills />
-        <Experience />
+        {/* <Skills /> */}
+        {/* <Experience /> */}
       </main>
       <Footer />
     </div>
