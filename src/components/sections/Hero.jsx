@@ -6,7 +6,7 @@ import { Camera, X, AlertCircle, Loader2 } from 'lucide-react';
 import emotionGif from '../../assets/emotion recognition.webp';
 
 // Emotion labels in correct order matching trained model output
-const EMOTIONS = ['angry', 'disgusted', 'fearful', 'happy', 'neutral', 'sad', 'surprised'];
+const EMOTIONS = ['Angry', 'Disgust', 'Fear', 'Happy', 'Neutral', 'Sad', 'Surprise'];
 
 // Processing constants
 const DISPLAY_WIDTH = 1280;
@@ -135,6 +135,10 @@ const Hero = () => {
   const frameCountRef = useRef(0);
   const videoReadyRef = useRef(false);
   const predictionHistoryRef = useRef([]); // For temporal smoothing
+  const lastFaceRef = useRef(null); // Store last face position
+  const lastBarsRef = useRef(null); // Store last emotion bars (persists independently)
+  const noFaceCountRef = useRef(0); // Count frames without face before clearing bars
+  const isProcessingRef = useRef(false); // Prevent concurrent async processing
 
   // Process video frame with dual resolution and frame skipping
   const processFrame = useCallback(async () => {
@@ -178,13 +182,110 @@ const Hero = () => {
     // Always request next frame to keep video smooth
     animationRef.current = requestAnimationFrame(processFrame);
 
+    // Clear overlay canvas every frame
+    overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+
+    // Helper function to draw emotion bars (independent of face box)
+    const drawEmotionBars = () => {
+      const bars = lastBarsRef.current;
+      if (!bars) return;
+
+      const { barBoxX, barBoxY, smoothed } = bars;
+      const barBoxWidth = 350;
+      const rowHeight = 38;
+      const barBoxHeight = EMOTIONS.length * rowHeight + 24;
+      const barMaxWidth = 300;
+
+      // Draw background box with rounded corners
+      overlayCtx.fillStyle = 'rgba(55, 65, 81, 0.92)';
+      overlayCtx.beginPath();
+      overlayCtx.roundRect(barBoxX, barBoxY, barBoxWidth, barBoxHeight, 12);
+      overlayCtx.fill();
+
+      // Find max prediction index
+      const maxIdx = smoothed.indexOf(Math.max(...smoothed));
+
+      // Draw each emotion bar
+      EMOTIONS.forEach((label, i) => {
+        const prob = smoothed[i];
+        const rowY = barBoxY + 28 + i * rowHeight;
+
+        // Emotion label - larger font
+        overlayCtx.fillStyle = '#FFFFFF';
+        overlayCtx.font = 'bold 16px system-ui, -apple-system, sans-serif';
+        overlayCtx.fillText(label, barBoxX + 16, rowY + 5);
+
+        // Probability bar (no background bar, just the filled portion)
+        const barX = barBoxX + 110;
+        const barWidth = Math.max(2, barMaxWidth * prob);
+        const barHeight = 12;
+
+        // Green color, brighter for max
+        overlayCtx.fillStyle = i === maxIdx ? '#4ADE80' : '#22C55E';
+
+        // Draw rounded bar
+        overlayCtx.beginPath();
+        overlayCtx.roundRect(barX, rowY - 4, barWidth, barHeight, 6);
+        overlayCtx.fill();
+      });
+    };
+
+    // Helper function to draw face box
+    const drawFaceBox = (face) => {
+      if (!face) return;
+
+      const { mirroredX, displayY, displayWidth, displayHeight } = face;
+
+      // Draw face box with prominent styling
+      overlayCtx.strokeStyle = '#D6C9A1';
+      overlayCtx.lineWidth = 4;
+      overlayCtx.strokeRect(mirroredX, displayY, displayWidth, displayHeight);
+
+      // Add corner accents
+      const cornerSize = 15;
+      overlayCtx.strokeStyle = '#F59E0B';
+      overlayCtx.lineWidth = 4;
+
+      // Top-left corner
+      overlayCtx.beginPath();
+      overlayCtx.moveTo(mirroredX, displayY + cornerSize);
+      overlayCtx.lineTo(mirroredX, displayY);
+      overlayCtx.lineTo(mirroredX + cornerSize, displayY);
+      overlayCtx.stroke();
+
+      // Top-right corner
+      overlayCtx.beginPath();
+      overlayCtx.moveTo(mirroredX + displayWidth - cornerSize, displayY);
+      overlayCtx.lineTo(mirroredX + displayWidth, displayY);
+      overlayCtx.lineTo(mirroredX + displayWidth, displayY + cornerSize);
+      overlayCtx.stroke();
+
+      // Bottom-left corner
+      overlayCtx.beginPath();
+      overlayCtx.moveTo(mirroredX, displayY + displayHeight - cornerSize);
+      overlayCtx.lineTo(mirroredX, displayY + displayHeight);
+      overlayCtx.lineTo(mirroredX + cornerSize, displayY + displayHeight);
+      overlayCtx.stroke();
+
+      // Bottom-right corner
+      overlayCtx.beginPath();
+      overlayCtx.moveTo(mirroredX + displayWidth - cornerSize, displayY + displayHeight);
+      overlayCtx.lineTo(mirroredX + displayWidth, displayY + displayHeight);
+      overlayCtx.lineTo(mirroredX + displayWidth, displayY + displayHeight - cornerSize);
+      overlayCtx.stroke();
+    };
+
+    // Always draw cached overlays first (prevents flashing)
+    drawFaceBox(lastFaceRef.current);
+    drawEmotionBars();
+
     // Only run ML processing on every Nth frame for performance
-    if (frameCountRef.current % FRAME_SKIP !== 0) {
+    // Also skip if already processing (prevents async overlap)
+    if (frameCountRef.current % FRAME_SKIP !== 0 || isProcessingRef.current) {
       return;
     }
 
-    // Clear overlay canvas
-    overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+    isProcessingRef.current = true;
 
     try {
       // Draw video to low-resolution processing canvas
@@ -196,7 +297,7 @@ const Hero = () => {
       if (predictions.length > 0) {
         const prediction = predictions[0];
 
-        // Get face box in processing canvas coordinates (320x240)
+        // Get face box in processing canvas coordinates
         const procX = prediction.topLeft[0];
         const procY = prediction.topLeft[1];
         const procWidth = prediction.bottomRight[0] - prediction.topLeft[0];
@@ -214,50 +315,11 @@ const Hero = () => {
         // Mirror the x coordinate since the video display is mirrored
         const mirroredX = overlayCanvas.width - displayX - displayWidth;
 
-        // Draw face box with prominent styling
-        overlayCtx.strokeStyle = '#D6C9A1';
-        overlayCtx.lineWidth = 4;
-        overlayCtx.strokeRect(mirroredX, displayY, displayWidth, displayHeight);
-
-        // Add corner accents
-        const cornerSize = 15;
-        overlayCtx.strokeStyle = '#F59E0B';
-        overlayCtx.lineWidth = 4;
-
-        // Top-left corner
-        overlayCtx.beginPath();
-        overlayCtx.moveTo(mirroredX, displayY + cornerSize);
-        overlayCtx.lineTo(mirroredX, displayY);
-        overlayCtx.lineTo(mirroredX + cornerSize, displayY);
-        overlayCtx.stroke();
-
-        // Top-right corner
-        overlayCtx.beginPath();
-        overlayCtx.moveTo(mirroredX + displayWidth - cornerSize, displayY);
-        overlayCtx.lineTo(mirroredX + displayWidth, displayY);
-        overlayCtx.lineTo(mirroredX + displayWidth, displayY + cornerSize);
-        overlayCtx.stroke();
-
-        // Bottom-left corner
-        overlayCtx.beginPath();
-        overlayCtx.moveTo(mirroredX, displayY + displayHeight - cornerSize);
-        overlayCtx.lineTo(mirroredX, displayY + displayHeight);
-        overlayCtx.lineTo(mirroredX + cornerSize, displayY + displayHeight);
-        overlayCtx.stroke();
-
-        // Bottom-right corner
-        overlayCtx.beginPath();
-        overlayCtx.moveTo(mirroredX + displayWidth - cornerSize, displayY + displayHeight);
-        overlayCtx.lineTo(mirroredX + displayWidth, displayY + displayHeight);
-        overlayCtx.lineTo(mirroredX + displayWidth, displayY + displayHeight - cornerSize);
-        overlayCtx.stroke();
-
         // Run emotion prediction if model is loaded
         if (modelRef.current) {
-          // Add padding to approximate Haar Cascade's larger bounding boxes
-          // BlazeFace gives tight face crops, Haar includes more head/forehead
+          // BlazeFace gives tight face crops, added padding to simulate train/test data
           const paddingX = -0.06;
-          const paddingY = 0.45;
+          const paddingY = 0.47;
           const padX = procWidth * paddingX;
           const padY = procHeight * paddingY;
 
@@ -313,22 +375,42 @@ const Hero = () => {
             return sum / predictionHistoryRef.current.length;
           });
 
+          // Store face position and bar data separately
+          lastFaceRef.current = { mirroredX, displayY, displayWidth, displayHeight };
+          noFaceCountRef.current = 0;
+
+          // Calculate bar position and store (using larger dimensions)
+          const barBoxWidth = 220;
+          const rowHeight = 38;
+          const barBoxHeight = EMOTIONS.length * rowHeight + 24;
+          let barBoxX = mirroredX + displayWidth + 16;
+          if (barBoxX + barBoxWidth > overlayCanvas.width) {
+            barBoxX = mirroredX - barBoxWidth - 16;
+          }
+          // Clamp to canvas bounds
+          barBoxX = Math.max(8, Math.min(barBoxX, overlayCanvas.width - barBoxWidth - 8));
+          const barBoxY = Math.max(8, Math.min(displayY, overlayCanvas.height - barBoxHeight - 8));
+          lastBarsRef.current = { barBoxX, barBoxY, smoothed };
           setPredictions(smoothed);
         } else {
-          // Demo mode with simulated predictions
-          const now = Date.now();
-          const demoProbs = EMOTIONS.map((_, i) => {
-            const base = Math.sin(now / 1000 + i * 0.8) * 0.3 + 0.5;
-            return Math.max(0.05, Math.min(0.95, base * (0.5 + Math.random() * 0.5)));
-          });
-          const sum = demoProbs.reduce((a, b) => a + b, 0);
-          setPredictions(demoProbs.map(p => p / sum));
+          // Demo mode - just update face position
+          lastFaceRef.current = { mirroredX, displayY, displayWidth, displayHeight };
+          noFaceCountRef.current = 0;
         }
       } else {
-        setPredictions(null);
+        // No face detected - clear face box but keep bars for many frames
+        lastFaceRef.current = null;
+        noFaceCountRef.current++;
+        // Only clear bars after 30 frames (about 1 second) without a face
+        if (noFaceCountRef.current > 30) {
+          lastBarsRef.current = null;
+          setPredictions(null);
+        }
       }
     } catch (err) {
       console.error('Frame processing error:', err);
+    } finally {
+      isProcessingRef.current = false;
     }
   }, []); // Using refs instead of state to avoid stale closures
 
@@ -358,6 +440,10 @@ const Hero = () => {
     setError(null);
     setIsVideoReady(false);
     videoReadyRef.current = false;
+    lastFaceRef.current = null;
+    lastBarsRef.current = null;
+    noFaceCountRef.current = 0;
+    predictionHistoryRef.current = [];
   }, [stopCamera]);
 
   // Handle escape key
@@ -817,17 +903,9 @@ const Hero = () => {
                   </div>
                 )}
 
-                {/* Video and predictions */}
+                {/* Video with overlay */}
                 {!isLoading && !error && (
-                  <div
-                    style={{
-                      display: 'grid',
-                      gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-                      gap: '1.5rem'
-                    }}
-                  >
-                    {/* Video container wrapper */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxWidth: '640px', margin: '0 auto' }}>
                       <div
                         style={{
                           position: 'relative',
@@ -929,113 +1007,9 @@ const Hero = () => {
                             fontFamily:"'Mouse Memoirs'"
                           }}
                         >
-                          Tip: Happy, surprised, neutral and angry work best with the webcam
+                          Tip: Happy, surprised, neutral and angry (like you are screaming) work best with the webcam. Keep in mind that humans only agree to 65% on emotion labels!
                         </p>
                       )}
-                    </div>
-
-                    {/* Predictions panel */}
-                    <div
-                      style={{
-                        backgroundColor: '#FAF5F0',
-                        borderRadius: '0.75rem',
-                        padding: '1.5rem',
-                        border: '2px solid #D6C9A1'
-                      }}
-                    >
-
-                      <h4
-                        style={{
-                          fontFamily: "'Mouse Memoirs', cursive",
-                          fontSize: '1.5rem',
-                          color: '#0F172A',
-                          marginBottom: '1rem',
-                          letterSpacing: '0.02em'
-                        }}
-                      >
-                        Detected Emotions
-                      </h4>
-
-                      {predictions ? (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                          {EMOTIONS.map((emotion, index) => {
-                            const prob = predictions[index] || 0;
-                            const isMax = predictions.indexOf(Math.max(...predictions)) === index;
-
-                            return (
-                              <div key={emotion}>
-                                <div
-                                  style={{
-                                    display: 'flex',
-                                    justifyContent: 'space-between',
-                                    marginBottom: '0.25rem'
-                                  }}
-                                >
-                                  <span
-                                    style={{
-                                      color: '#0F172A',
-                                      fontWeight: isMax ? 600 : 400,
-                                      fontSize: '0.95rem'
-                                    }}
-                                  >
-                                    {emotion}
-                                  </span>
-                                  <span
-                                    style={{
-                                      color: '#0F172A',
-                                      opacity: 0.7,
-                                      fontSize: '0.85rem'
-                                    }}
-                                  >
-                                    {(prob * 100).toFixed(1)}%
-                                  </span>
-                                </div>
-                                <div
-                                  style={{
-                                    height: '8px',
-                                    backgroundColor: '#E5E5E5',
-                                    borderRadius: '4px',
-                                    overflow: 'hidden'
-                                  }}
-                                >
-                                  <motion.div
-                                    initial={{ width: 0 }}
-                                    animate={{ width: `${prob * 100}%` }}
-                                    transition={{ duration: 0.3 }}
-                                    style={{
-                                      height: '100%',
-                                      backgroundColor: isMax ? '#F59E0B' : '#0F172A',
-                                      borderRadius: '4px'
-                                    }}
-                                  />
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      ) : (
-                        <p style={{ color: '#0F172A', opacity: 0.5, textAlign: 'center', padding: '2rem 0' }}>
-                          Waiting for face detection...
-                        </p>
-                      )}
-
-                      <div
-                        style={{
-                          marginTop: '1.5rem',
-                          paddingTop: '1rem',
-                          borderTop: '1px solid #D6C9A1',
-                          fontSize: '0.8rem',
-                          color: '#0F172A',
-                          opacity: 0.6
-                        }}
-                      >
-                        {modelRef.current ? (
-                          <p>Using custom MobileNet model trained on FER2013</p>
-                        ) : (
-                          <p>Demo mode - Add your converted model for real predictions</p>
-                        )}
-                      </div>
-                    </div>
                   </div>
                 )}
               </div>
