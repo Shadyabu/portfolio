@@ -17,23 +17,6 @@ const PROCESS_HEIGHT = 240;
 const IS_MOBILE = typeof navigator !== 'undefined' && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 const FRAME_SKIP = IS_MOBILE ? 6 : 3; // Process every Nth frame for performance
 
-// Polyfill for roundRect (not supported on older mobile browsers)
-if (typeof CanvasRenderingContext2D !== 'undefined' && !CanvasRenderingContext2D.prototype.roundRect) {
-  CanvasRenderingContext2D.prototype.roundRect = function (x, y, width, height, radii) {
-    const radius = typeof radii === 'number' ? radii : (Array.isArray(radii) ? radii[0] : 0);
-    this.moveTo(x + radius, y);
-    this.lineTo(x + width - radius, y);
-    this.quadraticCurveTo(x + width, y, x + width, y + radius);
-    this.lineTo(x + width, y + height - radius);
-    this.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
-    this.lineTo(x + radius, y + height);
-    this.quadraticCurveTo(x, y + height, x, y + height - radius);
-    this.lineTo(x, y + radius);
-    this.quadraticCurveTo(x, y, x + radius, y);
-    this.closePath();
-  };
-}
-
 const Hero = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -239,15 +222,11 @@ const Hero = () => {
       const bars = lastBarsRef.current;
       if (!bars) return;
 
-      const { barBoxX, barBoxY, smoothed, isMobile } = bars;
-
-      // Responsive dimensions: narrower and taller on mobile
-      const barBoxWidth = isMobile ? 180 : 350;
-      const rowHeight = isMobile ? 48 : 38;
+      const { barBoxX, barBoxY, smoothed } = bars;
+      const barBoxWidth = 350;
+      const rowHeight = 38;
       const barBoxHeight = EMOTIONS.length * rowHeight + 24;
-      const barMaxWidth = isMobile ? 60 : 280;
-      const labelOffset = isMobile ? 70 : 110;
-      const fontSize = isMobile ? 14 : 16;
+      const barMaxWidth = 300;
 
       // Draw background box with rounded corners
       overlayCtx.fillStyle = 'rgba(55, 65, 81, 0.92)';
@@ -263,13 +242,13 @@ const Hero = () => {
         const prob = smoothed[i];
         const rowY = barBoxY + 28 + i * rowHeight;
 
-        // Emotion label
+        // Emotion label - larger font
         overlayCtx.fillStyle = '#FFFFFF';
-        overlayCtx.font = `bold ${fontSize}px system-ui, -apple-system, sans-serif`;
+        overlayCtx.font = 'bold 16px system-ui, -apple-system, sans-serif';
         overlayCtx.fillText(label, barBoxX + 16, rowY + 5);
 
         // Probability bar (no background bar, just the filled portion)
-        const barX = barBoxX + labelOffset;
+        const barX = barBoxX + 110;
         const barWidth = Math.max(2, barMaxWidth * prob);
         const barHeight = 12;
 
@@ -432,10 +411,9 @@ const Hero = () => {
           lastFaceRef.current = { mirroredX, displayY, displayWidth, displayHeight };
           noFaceCountRef.current = 0;
 
-          // Calculate bar position and store (responsive dimensions)
-          const isMobile = overlayCanvas.width < 768;
-          const barBoxWidth = isMobile ? 180 : 350;
-          const rowHeight = isMobile ? 48 : 38;
+          // Calculate bar position and store (using larger dimensions)
+          const barBoxWidth = 220;
+          const rowHeight = 38;
           const barBoxHeight = EMOTIONS.length * rowHeight + 24;
           let barBoxX = mirroredX + displayWidth + 16;
           if (barBoxX + barBoxWidth > overlayCanvas.width) {
@@ -444,7 +422,7 @@ const Hero = () => {
           // Clamp to canvas bounds
           barBoxX = Math.max(8, Math.min(barBoxX, overlayCanvas.width - barBoxWidth - 8));
           const barBoxY = Math.max(8, Math.min(displayY, overlayCanvas.height - barBoxHeight - 8));
-          lastBarsRef.current = { barBoxX, barBoxY, smoothed, isMobile };
+          lastBarsRef.current = { barBoxX, barBoxY, smoothed };
           setPredictions(smoothed);
         } else {
           // Demo mode - just update face position
