@@ -62,6 +62,9 @@ const Hero = () => {
       setIsLoading(true);
       setError(null);
 
+      // Give UI time to render loading state before heavy TF.js operations
+      await new Promise(resolve => setTimeout(resolve, 100));
+
       // Initialize TensorFlow.js backend with fallback
       try {
         await tf.setBackend('webgl');
@@ -466,22 +469,44 @@ const Hero = () => {
   }, []); // Using refs instead of state to avoid stale closures
 
   // Handle modal open
-  const openModal = async () => {
+  const openModal = () => {
     setIsModalOpen(true);
     setError(null);
     setPredictions(null);
     setIsVideoReady(false);
     videoReadyRef.current = false;
-
-    if (!modelsLoaded) {
-      await loadModels();
-    }
-
-    const cameraStarted = await startCamera();
-    if (cameraStarted) {
-      animationRef.current = requestAnimationFrame(processFrame);
-    }
   };
+
+  // Load models and start camera after modal is visible
+  useEffect(() => {
+    if (!isModalOpen) return;
+
+    let cancelled = false;
+
+    const initDemo = async () => {
+      // Wait for modal to render before starting heavy operations
+      await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+      if (cancelled) return;
+
+      if (!modelsLoaded) {
+        await loadModels();
+      }
+
+      if (cancelled) return;
+
+      const cameraStarted = await startCamera();
+      if (cameraStarted && !cancelled) {
+        animationRef.current = requestAnimationFrame(processFrame);
+      }
+    };
+
+    initDemo();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isModalOpen, modelsLoaded, loadModels, startCamera, processFrame]);
 
   // Handle modal close
   const closeModal = useCallback(() => {
