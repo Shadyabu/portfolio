@@ -380,16 +380,19 @@ const Hero = () => {
           face224Ctx.drawImage(face48Canvas, 0, 0, 224, 224);
 
           // Step 3: Convert to tensor and normalize (RGB, /255, matching Python)
-          const tensor = tf.browser.fromPixels(face224Canvas)
-            .toFloat()
-            .div(255.0)
-            .expandDims(0);
+          // Use tf.tidy() to auto-dispose intermediate tensors from chained ops
+          const tensor = tf.tidy(() => {
+            return tf.browser.fromPixels(face224Canvas)
+              .toFloat()
+              .div(255.0)
+              .expandDims(0);
+          });
 
-          // Run prediction
+          // Run prediction and get data
           const emotionPrediction = modelRef.current.predict(tensor);
           const probabilities = await emotionPrediction.data();
 
-          // Clean up tensors
+          // Clean up tensors (tidy already cleaned intermediates)
           tensor.dispose();
           emotionPrediction.dispose();
 
@@ -464,9 +467,26 @@ const Hero = () => {
     }
   };
 
+  // Dispose TensorFlow.js models and free WebGL resources
+  const disposeModels = useCallback(() => {
+    if (modelRef.current) {
+      modelRef.current.dispose();
+      modelRef.current = null;
+    }
+    if (faceDetectorRef.current) {
+      // BlazeFace doesn't have a dispose method, but we can clear the reference
+      faceDetectorRef.current = null;
+    }
+    modelsLoadedRef.current = false;
+    setModelsLoaded(false);
+    // Clean up any remaining tensors
+    tf.disposeVariables();
+  }, []);
+
   // Handle modal close
   const closeModal = useCallback(() => {
     stopCamera();
+    disposeModels(); // Free WebGL resources when modal closes
     setIsModalOpen(false);
     setPredictions(null);
     setError(null);
@@ -476,7 +496,7 @@ const Hero = () => {
     lastBarsRef.current = null;
     noFaceCountRef.current = 0;
     predictionHistoryRef.current = [];
-  }, [stopCamera]);
+  }, [stopCamera, disposeModels]);
 
   // Handle escape key
   useEffect(() => {
@@ -502,8 +522,9 @@ const Hero = () => {
   useEffect(() => {
     return () => {
       stopCamera();
+      disposeModels();
     };
-  }, [stopCamera]);
+  }, [stopCamera, disposeModels]);
 
   return (
     <section
