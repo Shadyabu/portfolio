@@ -50,6 +50,8 @@ const Hero = () => {
   const animationRef = useRef(null);
   const modalRef = useRef(null);
   const modelsLoadedRef = useRef(false); // Ref to avoid stale closure issues
+  const face48CanvasRef = useRef(null); // Reusable canvas for 48x48 face resize
+  const face224CanvasRef = useRef(null); // Reusable canvas for 224x224 upscale
 
   // Load BlazeFace and emotion models
   const loadModels = useCallback(async () => {
@@ -350,9 +352,13 @@ const Hero = () => {
           const cropHeight = Math.min(PROCESS_HEIGHT - cropY, procHeight + padY * 2);
 
           // Step 1: Resize face to 48x48 (matching FER2013/Python preprocessing)
-          const face48Canvas = document.createElement('canvas');
-          face48Canvas.width = 48;
-          face48Canvas.height = 48;
+          // Initialize reusable canvas on first use
+          if (!face48CanvasRef.current) {
+            face48CanvasRef.current = document.createElement('canvas');
+            face48CanvasRef.current.width = 48;
+            face48CanvasRef.current.height = 48;
+          }
+          const face48Canvas = face48CanvasRef.current;
           const face48Ctx = face48Canvas.getContext('2d');
           face48Ctx.imageSmoothingEnabled = true;
           face48Ctx.drawImage(
@@ -362,9 +368,13 @@ const Hero = () => {
           );
 
           // Step 2: Upscale to 224x224 (MobileNet input size)
-          const face224Canvas = document.createElement('canvas');
-          face224Canvas.width = 224;
-          face224Canvas.height = 224;
+          // Initialize reusable canvas on first use
+          if (!face224CanvasRef.current) {
+            face224CanvasRef.current = document.createElement('canvas');
+            face224CanvasRef.current.width = 224;
+            face224CanvasRef.current.height = 224;
+          }
+          const face224Canvas = face224CanvasRef.current;
           const face224Ctx = face224Canvas.getContext('2d');
           face224Ctx.imageSmoothingEnabled = true;
           face224Ctx.drawImage(face48Canvas, 0, 0, 224, 224);
