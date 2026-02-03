@@ -48,12 +48,21 @@ const Hero = () => {
       // Give UI time to render loading state before heavy TF.js operations
       await new Promise(resolve => setTimeout(resolve, 100));
 
-      // Initialize TensorFlow.js backend with fallback
+      // Initialize TensorFlow.js backend
+      // Force CPU on mobile to avoid WebGL context limits (especially Safari)
+      const isSafari = /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
+      const shouldUseCPU = IS_MOBILE || isSafari;
+
       try {
-        await tf.setBackend('webgl');
+        if (shouldUseCPU) {
+          console.log('Using CPU backend for mobile/Safari compatibility');
+          await tf.setBackend('cpu');
+        } else {
+          await tf.setBackend('webgl');
+        }
         await tf.ready();
       } catch (backendErr) {
-        console.warn('WebGL backend failed, falling back to CPU:', backendErr);
+        console.warn('Backend initialization failed, trying CPU:', backendErr);
         await tf.setBackend('cpu');
         await tf.ready();
       }
