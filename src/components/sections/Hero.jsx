@@ -13,9 +13,24 @@ const DISPLAY_WIDTH = 1280;
 const DISPLAY_HEIGHT = 720;
 const PROCESS_WIDTH = 320;
 const PROCESS_HEIGHT = 240;
-// Adaptive frame skip: higher on mobile to reduce load
-const IS_MOBILE = typeof navigator !== 'undefined' && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-const FRAME_SKIP = IS_MOBILE ? 6 : 3; // Process every Nth frame for performance
+const FRAME_SKIP = 3; // Process every 3rd frame for performance
+
+// Polyfill for roundRect (not supported on older mobile browsers)
+if (typeof CanvasRenderingContext2D !== 'undefined' && !CanvasRenderingContext2D.prototype.roundRect) {
+  CanvasRenderingContext2D.prototype.roundRect = function (x, y, width, height, radii) {
+    const radius = typeof radii === 'number' ? radii : (Array.isArray(radii) ? radii[0] : 0);
+    this.moveTo(x + radius, y);
+    this.lineTo(x + width - radius, y);
+    this.quadraticCurveTo(x + width, y, x + width, y + radius);
+    this.lineTo(x + width, y + height - radius);
+    this.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+    this.lineTo(x + radius, y + height);
+    this.quadraticCurveTo(x, y + height, x, y + height - radius);
+    this.lineTo(x, y + radius);
+    this.quadraticCurveTo(x, y, x + radius, y);
+    this.closePath();
+  };
+}
 
 const Hero = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -36,72 +51,33 @@ const Hero = () => {
   const modalRef = useRef(null);
   const modelsLoadedRef = useRef(false); // Ref to avoid stale closure issues
 
-  // Helper to yield to main thread (prevents UI freeze)
-  const yieldToMain = () => new Promise(resolve => setTimeout(resolve, 0));
-
   // Load BlazeFace and emotion models
   const loadModels = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
 
-      // Give UI time to render loading state before heavy TF.js operations
-      await new Promise(resolve => setTimeout(resolve, 100));
-
-      // Initialize TensorFlow.js backend
-      // Force CPU on mobile to avoid WebGL context limits (especially Safari)
-      const isSafari = /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
-      const shouldUseCPU = IS_MOBILE || isSafari;
-
-      try {
-        if (shouldUseCPU) {
-          console.log('Using CPU backend for mobile/Safari compatibility');
-          await tf.setBackend('cpu');
-        } else {
-          await tf.setBackend('webgl');
-        }
-        await tf.ready();
-      } catch (backendErr) {
-        console.warn('Backend initialization failed, trying CPU:', backendErr);
-        await tf.setBackend('cpu');
-        await tf.ready();
-      }
-
-      await yieldToMain(); // Let UI update
-
       // Load BlazeFace for face detection (~200KB, fast)
       faceDetectorRef.current = await blazeface.load();
-
-      await yieldToMain(); // Let UI update
 
       // Load emotion model
       try {
         const modelPath = `${import.meta.env.BASE_URL}models/emotion_model/model.json`;
         modelRef.current = await tf.loadGraphModel(modelPath);
 
-        await yieldToMain(); // Let UI update before warm-up
-
         // Warm up emotion model to prevent first-frame lag
-        // Skip intensive warm-up on mobile to prevent freeze
-        if (!IS_MOBILE) {
-          const dummyInput = tf.zeros([1, 224, 224, 3]);
-          const dummyOutput = modelRef.current.predict(dummyInput);
-          // Use async data() instead of blocking dataSync()
-          if (Array.isArray(dummyOutput)) {
-            await Promise.all(dummyOutput.map(t => t.data()));
-            dummyOutput.forEach(t => t.dispose());
-          } else {
-            await dummyOutput.data();
-            dummyOutput.dispose();
-          }
-          dummyInput.dispose();
+        const dummyInput = tf.zeros([1, 224, 224, 3]);
+        const dummyOutput = modelRef.current.predict(dummyInput);
+        if (Array.isArray(dummyOutput)) {
+          dummyOutput.forEach(t => t.dispose());
+        } else {
+          dummyOutput.dispose();
         }
+        dummyInput.dispose();
       } catch (modelError) {
         console.warn('Custom emotion model not found, using demo mode:', modelError);
         modelRef.current = null;
       }
-
-      await yieldToMain(); // Let UI update
 
       // Warm up BlazeFace
       const warmupCanvas = document.createElement('canvas');
@@ -231,11 +207,15 @@ const Hero = () => {
       const bars = lastBarsRef.current;
       if (!bars) return;
 
-      const { barBoxX, barBoxY, smoothed } = bars;
-      const barBoxWidth = 350;
-      const rowHeight = 38;
+      const { barBoxX, barBoxY, smoothed, isMobile } = bars;
+
+      // Responsive dimensions: narrower and taller on mobile
+      const barBoxWidth = isMobile ? 180 : 350;
+      const rowHeight = isMobile ? 48 : 38;
       const barBoxHeight = EMOTIONS.length * rowHeight + 24;
-      const barMaxWidth = 300;
+      const barMaxWidth = isMobile ? 60 : 280;
+      const labelOffset = isMobile ? 70 : 110;
+      const fontSize = isMobile ? 14 : 16;
 
       // Draw background box with rounded corners
       overlayCtx.fillStyle = 'rgba(55, 65, 81, 0.92)';
@@ -251,13 +231,13 @@ const Hero = () => {
         const prob = smoothed[i];
         const rowY = barBoxY + 28 + i * rowHeight;
 
-        // Emotion label - larger font
+        // Emotion label
         overlayCtx.fillStyle = '#FFFFFF';
-        overlayCtx.font = 'bold 16px system-ui, -apple-system, sans-serif';
+        overlayCtx.font = `bold ${fontSize}px system-ui, -apple-system, sans-serif`;
         overlayCtx.fillText(label, barBoxX + 16, rowY + 5);
 
         // Probability bar (no background bar, just the filled portion)
-        const barX = barBoxX + 110;
+        const barX = barBoxX + labelOffset;
         const barWidth = Math.max(2, barMaxWidth * prob);
         const barHeight = 12;
 
@@ -420,9 +400,10 @@ const Hero = () => {
           lastFaceRef.current = { mirroredX, displayY, displayWidth, displayHeight };
           noFaceCountRef.current = 0;
 
-          // Calculate bar position and store (using larger dimensions)
-          const barBoxWidth = 220;
-          const rowHeight = 38;
+          // Calculate bar position and store (responsive dimensions)
+          const isMobile = overlayCanvas.width < 768;
+          const barBoxWidth = isMobile ? 180 : 350;
+          const rowHeight = isMobile ? 48 : 38;
           const barBoxHeight = EMOTIONS.length * rowHeight + 24;
           let barBoxX = mirroredX + displayWidth + 16;
           if (barBoxX + barBoxWidth > overlayCanvas.width) {
@@ -431,7 +412,7 @@ const Hero = () => {
           // Clamp to canvas bounds
           barBoxX = Math.max(8, Math.min(barBoxX, overlayCanvas.width - barBoxWidth - 8));
           const barBoxY = Math.max(8, Math.min(displayY, overlayCanvas.height - barBoxHeight - 8));
-          lastBarsRef.current = { barBoxX, barBoxY, smoothed };
+          lastBarsRef.current = { barBoxX, barBoxY, smoothed, isMobile };
           setPredictions(smoothed);
         } else {
           // Demo mode - just update face position
@@ -456,44 +437,22 @@ const Hero = () => {
   }, []); // Using refs instead of state to avoid stale closures
 
   // Handle modal open
-  const openModal = () => {
+  const openModal = async () => {
     setIsModalOpen(true);
     setError(null);
     setPredictions(null);
     setIsVideoReady(false);
     videoReadyRef.current = false;
+
+    if (!modelsLoaded) {
+      await loadModels();
+    }
+
+    const cameraStarted = await startCamera();
+    if (cameraStarted) {
+      animationRef.current = requestAnimationFrame(processFrame);
+    }
   };
-
-  // Load models and start camera after modal is visible
-  useEffect(() => {
-    if (!isModalOpen) return;
-
-    let cancelled = false;
-
-    const initDemo = async () => {
-      // Wait for modal to render before starting heavy operations
-      await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-
-      if (cancelled) return;
-
-      if (!modelsLoaded) {
-        await loadModels();
-      }
-
-      if (cancelled) return;
-
-      const cameraStarted = await startCamera();
-      if (cameraStarted && !cancelled) {
-        animationRef.current = requestAnimationFrame(processFrame);
-      }
-    };
-
-    initDemo();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [isModalOpen, modelsLoaded, loadModels, startCamera, processFrame]);
 
   // Handle modal close
   const closeModal = useCallback(() => {
