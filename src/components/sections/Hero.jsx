@@ -13,7 +13,9 @@ const DISPLAY_WIDTH = 1280;
 const DISPLAY_HEIGHT = 720;
 const PROCESS_WIDTH = 320;
 const PROCESS_HEIGHT = 240;
-const FRAME_SKIP = 3; // Process every 3rd frame for performance
+// Adaptive frame skip: higher on mobile to reduce load
+const IS_MOBILE = typeof navigator !== 'undefined' && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+const FRAME_SKIP = IS_MOBILE ? 6 : 3; // Process every Nth frame for performance
 
 // Polyfill for roundRect (not supported on older mobile browsers)
 if (typeof CanvasRenderingContext2D !== 'undefined' && !CanvasRenderingContext2D.prototype.roundRect) {
@@ -51,33 +53,60 @@ const Hero = () => {
   const modalRef = useRef(null);
   const modelsLoadedRef = useRef(false); // Ref to avoid stale closure issues
 
+  // Helper to yield to main thread (prevents UI freeze)
+  const yieldToMain = () => new Promise(resolve => setTimeout(resolve, 0));
+
   // Load BlazeFace and emotion models
   const loadModels = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
 
+      // Initialize TensorFlow.js backend with fallback
+      try {
+        await tf.setBackend('webgl');
+        await tf.ready();
+      } catch (backendErr) {
+        console.warn('WebGL backend failed, falling back to CPU:', backendErr);
+        await tf.setBackend('cpu');
+        await tf.ready();
+      }
+
+      await yieldToMain(); // Let UI update
+
       // Load BlazeFace for face detection (~200KB, fast)
       faceDetectorRef.current = await blazeface.load();
+
+      await yieldToMain(); // Let UI update
 
       // Load emotion model
       try {
         const modelPath = `${import.meta.env.BASE_URL}models/emotion_model/model.json`;
         modelRef.current = await tf.loadGraphModel(modelPath);
 
+        await yieldToMain(); // Let UI update before warm-up
+
         // Warm up emotion model to prevent first-frame lag
-        const dummyInput = tf.zeros([1, 224, 224, 3]);
-        const dummyOutput = modelRef.current.predict(dummyInput);
-        if (Array.isArray(dummyOutput)) {
-          dummyOutput.forEach(t => t.dispose());
-        } else {
-          dummyOutput.dispose();
+        // Skip intensive warm-up on mobile to prevent freeze
+        if (!IS_MOBILE) {
+          const dummyInput = tf.zeros([1, 224, 224, 3]);
+          const dummyOutput = modelRef.current.predict(dummyInput);
+          // Use async data() instead of blocking dataSync()
+          if (Array.isArray(dummyOutput)) {
+            await Promise.all(dummyOutput.map(t => t.data()));
+            dummyOutput.forEach(t => t.dispose());
+          } else {
+            await dummyOutput.data();
+            dummyOutput.dispose();
+          }
+          dummyInput.dispose();
         }
-        dummyInput.dispose();
       } catch (modelError) {
         console.warn('Custom emotion model not found, using demo mode:', modelError);
         modelRef.current = null;
       }
+
+      await yieldToMain(); // Let UI update
 
       // Warm up BlazeFace
       const warmupCanvas = document.createElement('canvas');
