@@ -15,6 +15,11 @@ const PROCESS_WIDTH = 320;
 const PROCESS_HEIGHT = 240;
 const FRAME_SKIP = 3; // Process every 3rd frame for performance
 
+// Detect mobile devices to use CPU backend (avoids WebGL context limits on iOS Safari)
+const isMobile = () => {
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+};
+
 // Polyfill for roundRect (not supported on older mobile browsers)
 if (typeof CanvasRenderingContext2D !== 'undefined' && !CanvasRenderingContext2D.prototype.roundRect) {
   CanvasRenderingContext2D.prototype.roundRect = function (x, y, width, height, radii) {
@@ -58,6 +63,12 @@ const Hero = () => {
     try {
       setIsLoading(true);
       setError(null);
+
+      // Use CPU backend on mobile to avoid WebGL context limits (iOS Safari has 2-4 limit)
+      if (isMobile()) {
+        await tf.setBackend('cpu');
+      }
+      await tf.ready();
 
       // Load BlazeFace for face detection (~200KB, fast)
       faceDetectorRef.current = await blazeface.load();
