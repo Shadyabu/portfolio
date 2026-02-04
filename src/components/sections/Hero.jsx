@@ -440,8 +440,8 @@ const Hero = () => {
         if (modelRef.current && shouldRunEmotion) {
           // BlazeFace gives tight face crops, added padding to simulate train/test data
           // Mobile needs more horizontal padding due to lower resolution detection
-          const paddingX = isMobile() ? 0.19 : -0.06;
-          const paddingY = 0.47;
+          const paddingX = isMobile() ? 0.25 : -0.06;
+          const paddingY = isMobile() ? 0.40 : 0.47;
           const padX = procWidth * paddingX;
           const padY = procHeight * paddingY;
 
