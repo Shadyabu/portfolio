@@ -439,7 +439,8 @@ const Hero = () => {
         // Run emotion prediction if model is loaded and not throttled
         if (modelRef.current && shouldRunEmotion) {
           // BlazeFace gives tight face crops, added padding to simulate train/test data
-          const paddingX = -0.06;
+          // Mobile needs more horizontal padding due to lower resolution detection
+          const paddingX = isMobile() ? 0.15 : -0.06;
           const paddingY = 0.47;
           const padX = procWidth * paddingX;
           const padY = procHeight * paddingY;
@@ -527,7 +528,7 @@ const Hero = () => {
           // Calculate bar position and store (use isMobile() for consistency)
           const isMobileDevice = isMobile();
           const barBoxWidth = isMobileDevice ? 220 : 350;
-          const rowHeight = isMobileDevice ? 32 : 38;
+          const rowHeight = isMobileDevice ? 50 : 38;
           const barBoxHeight = EMOTIONS.length * rowHeight + 24;
           let barBoxX = mirroredX + displayWidth + 16;
           if (barBoxX + barBoxWidth > overlayCanvas.width) {
@@ -1076,7 +1077,7 @@ const Hero = () => {
                           backgroundColor: '#0F172A',
                           borderRadius: '0.75rem',
                           overflow: 'hidden',
-                          aspectRatio: '4/3'
+                          aspectRatio: isMobile() ? '3/4' : '4/3'  // Taller on mobile to mimic selfie camera
                         }}
                       >
                       <video
