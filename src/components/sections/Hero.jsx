@@ -15,6 +15,10 @@ const PROCESS_WIDTH = 320;
 const PROCESS_HEIGHT = 240;
 const FRAME_SKIP = 3; // Process every 3rd frame for performance
 
+// Debug settings for mobile performance diagnosis
+const DEBUG_MOBILE = true; // Toggle for debugging
+const DEBUG_LOG_INTERVAL = 2000; // Log stats every 2 seconds
+
 // Detect mobile devices to use CPU backend (avoids WebGL context limits on iOS Safari)
 const isMobile = () => {
   return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -170,6 +174,12 @@ const Hero = () => {
   const noFaceCountRef = useRef(0); // Count frames without face before clearing bars
   const isProcessingRef = useRef(false); // Prevent concurrent async processing
 
+  // Debug refs for mobile performance tracking
+  const processingTimesRef = useRef([]);
+  const skipCountRef = useRef(0);
+  const processCountRef = useRef(0);
+  const lastDebugLogRef = useRef(Date.now());
+
   // Process video frame with dual resolution and frame skipping
   const processFrame = useCallback(async () => {
     if (!videoRef.current || !overlayCanvasRef.current || !processingCanvasRef.current || !modelsLoadedRef.current) {
@@ -314,19 +324,58 @@ const Hero = () => {
     drawEmotionBars();
 
     // Only run ML processing on every Nth frame for performance
-    // Also skip if already processing (prevents async overlap)
-    if (frameCountRef.current % FRAME_SKIP !== 0 || isProcessingRef.current) {
+    if (frameCountRef.current % FRAME_SKIP !== 0) {
+      return;
+    }
+
+    // Skip if already processing (prevents async overlap)
+    if (isProcessingRef.current) {
+      if (DEBUG_MOBILE) {
+        skipCountRef.current++;
+      }
       return;
     }
 
     isProcessingRef.current = true;
 
     try {
+      const frameStartTime = DEBUG_MOBILE ? performance.now() : 0;
+
       // Draw video to low-resolution processing canvas
       processingCtx.drawImage(video, 0, 0, PROCESS_WIDTH, PROCESS_HEIGHT);
 
       // Run BlazeFace on the small processing canvas
       const predictions = await faceDetectorRef.current.estimateFaces(processingCanvas, false);
+
+      // Debug: Track processing time and log periodically
+      if (DEBUG_MOBILE) {
+        const frameTime = performance.now() - frameStartTime;
+        processingTimesRef.current.push(frameTime);
+        processCountRef.current++;
+
+        // Log stats every DEBUG_LOG_INTERVAL ms
+        const now = Date.now();
+        if (now - lastDebugLogRef.current > DEBUG_LOG_INTERVAL) {
+          const times = processingTimesRef.current;
+          const avgTime = times.length > 0 ? times.reduce((a, b) => a + b, 0) / times.length : 0;
+          const maxTime = times.length > 0 ? Math.max(...times) : 0;
+          const totalAttempts = skipCountRef.current + processCountRef.current;
+          const skipRate = totalAttempts > 0 ? (skipCountRef.current / totalAttempts * 100).toFixed(1) : '0';
+
+          console.log(
+            `[Face Debug] Backend: ${tf.getBackend()}, ` +
+            `Avg: ${avgTime.toFixed(0)}ms, Max: ${maxTime.toFixed(0)}ms, ` +
+            `Skip rate: ${skipRate}% (${skipCountRef.current}/${totalAttempts}), ` +
+            `Faces: ${predictions.length}, Mobile: ${isMobile()}`
+          );
+
+          // Reset counters
+          processingTimesRef.current = [];
+          skipCountRef.current = 0;
+          processCountRef.current = 0;
+          lastDebugLogRef.current = now;
+        }
+      }
 
       if (predictions.length > 0) {
         const prediction = predictions[0];
