@@ -25,6 +25,10 @@ const DEBUG_LOG_INTERVAL = 2000; // Log stats every 2 seconds
 const MOBILE_PROCESS_WIDTH = 160;  // Reduced from 320 for faster BlazeFace
 const MOBILE_PROCESS_HEIGHT = 120; // Reduced from 240
 const MOBILE_EMOTION_SKIP = 2;     // Run emotion every 2nd face detection
+const MOBILE_FACEBOX_SCALE = 1.4;  // Enlarge face box on mobile (BlazeFace returns tighter boxes at lower res)
+
+// Debug: Show what's being fed to the model
+const DEBUG_SHOW_CROP = true;  // Toggle to show/hide the face crop debug view
 
 // Detect mobile devices to use CPU backend (avoids WebGL context limits on iOS Safari)
 const isMobile = () => {
@@ -68,6 +72,7 @@ const Hero = () => {
   const modelsLoadedRef = useRef(false); // Ref to avoid stale closure issues
   const face48CanvasRef = useRef(null); // Reusable canvas for 48x48 face resize
   const face224CanvasRef = useRef(null); // Reusable canvas for 224x224 upscale
+  const debugCanvasRef = useRef(null); // Debug canvas to show face crop
 
   // Load BlazeFace and emotion models
   const loadModels = useCallback(async () => {
@@ -249,15 +254,15 @@ const Hero = () => {
       const bars = lastBarsRef.current;
       if (!bars) return;
 
-      const { barBoxX, barBoxY, smoothed, isMobile } = bars;
+      const { barBoxX, barBoxY, smoothed, isMobileDevice } = bars;
 
-      // Responsive dimensions: narrower and taller on mobile
-      const barBoxWidth = isMobile ? 180 : 350;
-      const rowHeight = isMobile ? 48 : 38;
+      // Responsive dimensions - improved for mobile legibility
+      const barBoxWidth = isMobileDevice ? 220 : 350;
+      const rowHeight = isMobileDevice ? 32 : 38;  // Reduced row height on mobile
       const barBoxHeight = EMOTIONS.length * rowHeight + 24;
-      const barMaxWidth = isMobile ? 60 : 280;
-      const labelOffset = isMobile ? 70 : 110;
-      const fontSize = isMobile ? 14 : 16;
+      const barMaxWidth = isMobileDevice ? 130 : 280;  // Wider bars on mobile
+      const labelOffset = isMobileDevice ? 80 : 110;
+      const fontSize = isMobileDevice ? 14 : 16;
 
       // Draw background box with rounded corners
       overlayCtx.fillStyle = 'rgba(55, 65, 81, 0.92)';
@@ -409,10 +414,20 @@ const Hero = () => {
         const scaleX = video.videoWidth / processWidth;
         const scaleY = video.videoHeight / processHeight;
 
-        const displayX = procX * scaleX;
-        const displayY = procY * scaleY;
-        const displayWidth = procWidth * scaleX;
-        const displayHeight = procHeight * scaleY;
+        let displayX = procX * scaleX;
+        let displayY = procY * scaleY;
+        let displayWidth = procWidth * scaleX;
+        let displayHeight = procHeight * scaleY;
+
+        // On mobile, enlarge the face box (BlazeFace returns tighter boxes at lower resolution)
+        if (isMobile()) {
+          const extraWidth = displayWidth * (MOBILE_FACEBOX_SCALE - 1);
+          const extraHeight = displayHeight * (MOBILE_FACEBOX_SCALE - 1);
+          displayX -= extraWidth / 2;
+          displayY -= extraHeight / 2;
+          displayWidth *= MOBILE_FACEBOX_SCALE;
+          displayHeight *= MOBILE_FACEBOX_SCALE;
+        }
 
         // Mirror the x coordinate since the video display is mirrored
         const mirroredX = overlayCanvas.width - displayX - displayWidth;
@@ -462,6 +477,19 @@ const Hero = () => {
           face224Ctx.imageSmoothingEnabled = true;
           face224Ctx.drawImage(face48Canvas, 0, 0, 224, 224);
 
+          // Debug: Draw face crop to visible debug canvas
+          if (DEBUG_SHOW_CROP && debugCanvasRef.current) {
+            const debugCtx = debugCanvasRef.current.getContext('2d');
+            // Draw the 48x48 crop scaled up for visibility
+            debugCtx.imageSmoothingEnabled = false; // Keep pixelated to see actual input
+            debugCtx.drawImage(face48Canvas, 0, 0, 96, 96);
+            // Show padding info
+            debugCtx.fillStyle = '#FFFFFF';
+            debugCtx.font = '10px monospace';
+            debugCtx.fillText(`padX: ${paddingX.toFixed(2)}`, 4, 108);
+            debugCtx.fillText(`padY: ${paddingY.toFixed(2)}`, 4, 120);
+          }
+
           // Step 3: Convert to tensor and normalize (RGB, /255, matching Python)
           // Use tf.tidy() to auto-dispose intermediate tensors from chained ops
           const tensor = tf.tidy(() => {
@@ -496,10 +524,10 @@ const Hero = () => {
           lastFaceRef.current = { mirroredX, displayY, displayWidth, displayHeight };
           noFaceCountRef.current = 0;
 
-          // Calculate bar position and store (responsive dimensions)
-          const isMobile = overlayCanvas.width < 768;
-          const barBoxWidth = isMobile ? 180 : 350;
-          const rowHeight = isMobile ? 48 : 38;
+          // Calculate bar position and store (use isMobile() for consistency)
+          const isMobileDevice = isMobile();
+          const barBoxWidth = isMobileDevice ? 220 : 350;
+          const rowHeight = isMobileDevice ? 32 : 38;
           const barBoxHeight = EMOTIONS.length * rowHeight + 24;
           let barBoxX = mirroredX + displayWidth + 16;
           if (barBoxX + barBoxWidth > overlayCanvas.width) {
@@ -508,7 +536,7 @@ const Hero = () => {
           // Clamp to canvas bounds
           barBoxX = Math.max(8, Math.min(barBoxX, overlayCanvas.width - barBoxWidth - 8));
           const barBoxY = Math.max(8, Math.min(displayY, overlayCanvas.height - barBoxHeight - 8));
-          lastBarsRef.current = { barBoxX, barBoxY, smoothed, isMobile };
+          lastBarsRef.current = { barBoxX, barBoxY, smoothed, isMobileDevice };
           setPredictions(smoothed);
         } else {
           // Demo mode - just update face position
@@ -1130,6 +1158,34 @@ const Hero = () => {
                           }}
                         >
                           Position your face in the frame
+                        </div>
+                      )}
+
+                      {/* Debug canvas showing face crop fed to model */}
+                      {DEBUG_SHOW_CROP && (
+                        <div
+                          style={{
+                            position: 'absolute',
+                            top: '8px',
+                            left: '8px',
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            borderRadius: '8px',
+                            padding: '4px',
+                            zIndex: 20
+                          }}
+                        >
+                          <canvas
+                            ref={debugCanvasRef}
+                            width={96}
+                            height={128}
+                            style={{
+                              display: 'block',
+                              imageRendering: 'pixelated'
+                            }}
+                          />
+                          <div style={{ color: '#FFFFFF', fontSize: '10px', textAlign: 'center', marginTop: '2px' }}>
+                            Model Input
+                          </div>
                         </div>
                       )}
                       </div>
