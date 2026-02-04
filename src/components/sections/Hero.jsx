@@ -1,6 +1,8 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import * as tf from '@tensorflow/tfjs';
+import '@tensorflow/tfjs-backend-wasm';
+import { setWasmPaths } from '@tensorflow/tfjs-backend-wasm';
 import * as blazeface from '@tensorflow-models/blazeface';
 import { Camera, X, AlertCircle, Loader2 } from 'lucide-react';
 import emotionGif from '../../assets/emotion recognition.webp';
@@ -18,6 +20,11 @@ const FRAME_SKIP = 3; // Process every 3rd frame for performance
 // Debug settings for mobile performance diagnosis
 const DEBUG_MOBILE = true; // Toggle for debugging
 const DEBUG_LOG_INTERVAL = 2000; // Log stats every 2 seconds
+
+// Mobile-specific optimizations
+const MOBILE_PROCESS_WIDTH = 160;  // Reduced from 320 for faster BlazeFace
+const MOBILE_PROCESS_HEIGHT = 120; // Reduced from 240
+const MOBILE_EMOTION_SKIP = 2;     // Run emotion every 2nd face detection
 
 // Detect mobile devices to use CPU backend (avoids WebGL context limits on iOS Safari)
 const isMobile = () => {
@@ -68,10 +75,12 @@ const Hero = () => {
       setIsLoading(true);
       setError(null);
 
-      // Use CPU backend on mobile to avoid WebGL context limits (iOS Safari has 2-4 limit)
+      // Use WASM backend on mobile - faster than CPU, avoids WebGL context limits
       if (isMobile()) {
-        await tf.setBackend('cpu');
+        setWasmPaths('https://cdn.jsdelivr.net/npm/@aspect-dev/tfjs-backend-wasm@4.22.0/dist/');
+        await tf.setBackend('wasm');
       }
+      // Desktop uses default WebGL backend
       await tf.ready();
 
       // Load BlazeFace for face detection (~200KB, fast)
@@ -179,6 +188,7 @@ const Hero = () => {
   const skipCountRef = useRef(0);
   const processCountRef = useRef(0);
   const lastDebugLogRef = useRef(Date.now());
+  const emotionSkipCountRef = useRef(0); // For throttling emotion on mobile
 
   // Process video frame with dual resolution and frame skipping
   const processFrame = useCallback(async () => {
@@ -211,10 +221,12 @@ const Hero = () => {
       overlayCanvas.height = video.videoHeight;
     }
 
-    // Ensure processing canvas is set to low resolution
-    if (processingCanvas.width !== PROCESS_WIDTH || processingCanvas.height !== PROCESS_HEIGHT) {
-      processingCanvas.width = PROCESS_WIDTH;
-      processingCanvas.height = PROCESS_HEIGHT;
+    // Ensure processing canvas is set to appropriate resolution (lower on mobile)
+    const processWidth = isMobile() ? MOBILE_PROCESS_WIDTH : PROCESS_WIDTH;
+    const processHeight = isMobile() ? MOBILE_PROCESS_HEIGHT : PROCESS_HEIGHT;
+    if (processingCanvas.width !== processWidth || processingCanvas.height !== processHeight) {
+      processingCanvas.width = processWidth;
+      processingCanvas.height = processHeight;
     }
 
     frameCountRef.current++;
@@ -342,7 +354,7 @@ const Hero = () => {
       const frameStartTime = DEBUG_MOBILE ? performance.now() : 0;
 
       // Draw video to low-resolution processing canvas
-      processingCtx.drawImage(video, 0, 0, PROCESS_WIDTH, PROCESS_HEIGHT);
+      processingCtx.drawImage(video, 0, 0, processWidth, processHeight);
 
       // Run BlazeFace on the small processing canvas
       const predictions = await faceDetectorRef.current.estimateFaces(processingCanvas, false);
@@ -387,8 +399,8 @@ const Hero = () => {
         const procHeight = prediction.bottomRight[1] - prediction.topLeft[1];
 
         // Scale coordinates from processing canvas to display canvas
-        const scaleX = video.videoWidth / PROCESS_WIDTH;
-        const scaleY = video.videoHeight / PROCESS_HEIGHT;
+        const scaleX = video.videoWidth / processWidth;
+        const scaleY = video.videoHeight / processHeight;
 
         const displayX = procX * scaleX;
         const displayY = procY * scaleY;
@@ -398,8 +410,12 @@ const Hero = () => {
         // Mirror the x coordinate since the video display is mirrored
         const mirroredX = overlayCanvas.width - displayX - displayWidth;
 
-        // Run emotion prediction if model is loaded
-        if (modelRef.current) {
+        // Throttle emotion inference on mobile - run every Nth face detection
+        const shouldRunEmotion = !isMobile() || (emotionSkipCountRef.current % MOBILE_EMOTION_SKIP === 0);
+        emotionSkipCountRef.current++;
+
+        // Run emotion prediction if model is loaded and not throttled
+        if (modelRef.current && shouldRunEmotion) {
           // BlazeFace gives tight face crops, added padding to simulate train/test data
           const paddingX = -0.06;
           const paddingY = 0.47;
@@ -408,8 +424,8 @@ const Hero = () => {
 
           const cropX = Math.max(0, procX - padX);
           const cropY = Math.max(0, procY - padY);
-          const cropWidth = Math.min(PROCESS_WIDTH - cropX, procWidth + padX * 2);
-          const cropHeight = Math.min(PROCESS_HEIGHT - cropY, procHeight + padY * 2);
+          const cropWidth = Math.min(processWidth - cropX, procWidth + padX * 2);
+          const cropHeight = Math.min(processHeight - cropY, procHeight + padY * 2);
 
           // Step 1: Resize face to 48x48 (matching FER2013/Python preprocessing)
           // Initialize reusable canvas on first use
