@@ -77,11 +77,18 @@ const Hero = () => {
 
       // Use WASM backend on mobile - faster than CPU, avoids WebGL context limits
       if (isMobile()) {
-        setWasmPaths('https://cdn.jsdelivr.net/npm/@aspect-dev/tfjs-backend-wasm@4.22.0/dist/');
-        await tf.setBackend('wasm');
+        try {
+          setWasmPaths('https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-wasm@4.22.0/dist/');
+          await tf.setBackend('wasm');
+          console.log('[TF] Using WASM backend for mobile');
+        } catch (wasmError) {
+          console.warn('[TF] WASM backend failed, falling back to CPU:', wasmError);
+          await tf.setBackend('cpu');
+        }
       }
       // Desktop uses default WebGL backend
       await tf.ready();
+      console.log('[TF] Backend ready:', tf.getBackend());
 
       // Load BlazeFace for face detection (~200KB, fast)
       faceDetectorRef.current = await blazeface.load();
@@ -105,10 +112,10 @@ const Hero = () => {
         modelRef.current = null;
       }
 
-      // Warm up BlazeFace
+      // Warm up BlazeFace with appropriate resolution
       const warmupCanvas = document.createElement('canvas');
-      warmupCanvas.width = PROCESS_WIDTH;
-      warmupCanvas.height = PROCESS_HEIGHT;
+      warmupCanvas.width = isMobile() ? MOBILE_PROCESS_WIDTH : PROCESS_WIDTH;
+      warmupCanvas.height = isMobile() ? MOBILE_PROCESS_HEIGHT : PROCESS_HEIGHT;
       await faceDetectorRef.current.estimateFaces(warmupCanvas, false);
 
       modelsLoadedRef.current = true;
