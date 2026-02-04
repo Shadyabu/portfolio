@@ -234,8 +234,8 @@ const Hero = () => {
     }
 
     // Ensure processing canvas is set to appropriate resolution (lower on mobile)
-    const processWidth = PROCESS_WIDTH;
-    const processHeight = PROCESS_HEIGHT;
+    const processWidth = isMobile() ? MOBILE_PROCESS_WIDTH : PROCESS_WIDTH;
+    const processHeight = isMobile() ? MOBILE_PROCESS_HEIGHT : PROCESS_HEIGHT;
     if (processingCanvas.width !== processWidth || processingCanvas.height !== processHeight) {
       processingCanvas.width = processWidth;
       processingCanvas.height = processHeight;
@@ -258,7 +258,7 @@ const Hero = () => {
 
       // Responsive dimensions - improved for mobile legibility
       const barBoxWidth = isMobileDevice ? 220 : 350;
-      const rowHeight = isMobileDevice ? 40 : 38;  // Reduced row height on mobile
+      const rowHeight = isMobileDevice ? 50 : 38;  // Reduced row height on mobile
       const barBoxHeight = EMOTIONS.length * rowHeight + 24;
       const barMaxWidth = isMobileDevice ? 130 : 280;  // Wider bars on mobile
       const labelOffset = isMobileDevice ? 80 : 110;
@@ -440,8 +440,8 @@ const Hero = () => {
         if (modelRef.current && shouldRunEmotion) {
           // BlazeFace gives tight face crops, added padding to simulate train/test data
           // Mobile needs more horizontal padding due to lower resolution detection
-          const paddingX = isMobile() ? 0.25 : -0.06;
-          const paddingY = isMobile() ? 0.35 : 0.47;
+          const paddingX = isMobile() ? 0.30 : -0.06;
+          const paddingY = isMobile() ? 0.40 : 0.47;
           const padX = procWidth * paddingX;
           const padY = procHeight * paddingY;
 
