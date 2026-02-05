@@ -1,27 +1,65 @@
 import { motion } from 'framer-motion';
-import { Github, ExternalLink } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Clock } from 'lucide-react';
 import { projects } from '../../data/projects';
 
 const ProjectCard = ({ project, index }) => {
+  const navigate = useNavigate();
+
+  const handleClick = () => {
+    if (!project.ongoing) {
+      navigate(`/project/${project.id}`);
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 30 }}
       whileInView={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: index * 0.1 }}
       viewport={{ once: true }}
-      whileHover={{ y: -8, transition: { duration: 0.3 } }}
+      whileHover={project.ongoing ? {} : { y: -8, transition: { duration: 0.3 } }}
+      onClick={handleClick}
       style={{
-        backgroundColor: '#FFFFFF',
+        backgroundColor: project.ongoing ? '#F5F5F5' : '#FFFFFF',
         borderRadius: '1rem',
         overflow: 'hidden',
-        border: '2px solid #D6C9A1',
-        boxShadow: '6px 6px 0px rgba(214, 201, 161, 0.3)',
-        transition: 'all 0.3s ease'
+        border: project.ongoing ? '2px dashed #9CA3AF' : '2px solid #D6C9A1',
+        boxShadow: project.ongoing
+          ? '4px 4px 0px rgba(156, 163, 175, 0.2)'
+          : '6px 6px 0px rgba(214, 201, 161, 0.3)',
+        transition: 'all 0.3s ease',
+        cursor: project.ongoing ? 'default' : 'pointer',
+        opacity: project.ongoing ? 0.7 : 1
       }}
       className="overflow-hidden relative"
     >
+      {/* Ongoing badge */}
+      {project.ongoing && (
+        <motion.div
+          className="absolute top-4 left-4 z-10 flex items-center gap-1.5 px-3 py-1.5 rounded-full"
+          style={{
+            background: 'linear-gradient(135deg, #E5E7EB 0%, #D1D5DB 100%)',
+            border: '1.5px dashed #9CA3AF',
+            color: '#4B5563',
+            fontSize: '0.75rem',
+            fontWeight: '600'
+          }}
+        >
+          <Clock size={14} />
+          <span>Coming Soon</span>
+        </motion.div>
+      )}
+
       {/* Image section with playful overlay */}
-      <div className="relative h-48 overflow-hidden" style={{ background: 'linear-gradient(135deg, #D6C9A1 0%, #FAF5F0 100%)' }}>
+      <div
+        className="relative h-48 overflow-hidden"
+        style={{
+          background: project.ongoing
+            ? 'linear-gradient(135deg, #E5E7EB 0%, #F3F4F6 100%)'
+            : 'linear-gradient(135deg, #D6C9A1 0%, #FAF5F0 100%)'
+        }}
+      >
         {project.image ? (
           <motion.img
             src={project.image}
@@ -43,7 +81,7 @@ const ProjectCard = ({ project, index }) => {
           className="mb-2"
           style={{
             fontFamily: "'Mouse Memoirs', cursive",
-            fontSize: '2rem',
+            fontSize: '1.75rem',
             color: '#0F172A',
             letterSpacing: '0.02em',
             lineHeight: '1.2'
@@ -57,11 +95,11 @@ const ProjectCard = ({ project, index }) => {
           <motion.span
             className="inline-block px-3 py-1 text-sm font-medium rounded-full mb-3"
             style={{
-              backgroundColor: '#D6C9A1',
-              color: '#0F172A',
-              border: '1px solid #0F172A'
+              backgroundColor: project.ongoing ? '#E5E7EB' : '#D6C9A1',
+              color: project.ongoing ? '#6B7280' : '#0F172A',
+              border: project.ongoing ? '1px solid #9CA3AF' : '1px solid #0F172A'
             }}
-            whileHover={{ scale: 1.05, rotate: 2 }}
+            whileHover={project.ongoing ? {} : { scale: 1.05, rotate: 2 }}
           >
             {project.sustainability}
           </motion.span>
@@ -72,7 +110,7 @@ const ProjectCard = ({ project, index }) => {
         </p>
 
         {/* Technologies with better styling */}
-        <div className="mb-5">
+        <div className="mb-4">
           <h4
             className="text-sm font-medium mb-2"
             style={{
@@ -90,11 +128,11 @@ const ProjectCard = ({ project, index }) => {
                 key={tech}
                 className="px-3 py-1 text-sm rounded-md"
                 style={{
-                  backgroundColor: '#FAF5F0',
-                  color: '#0F172A',
-                  border: '1px solid #D6C9A1'
+                  backgroundColor: project.ongoing ? '#F3F4F6' : '#FAF5F0',
+                  color: project.ongoing ? '#6B7280' : '#0F172A',
+                  border: project.ongoing ? '1px solid #D1D5DB' : '1px solid #D6C9A1'
                 }}
-                whileHover={{
+                whileHover={project.ongoing ? {} : {
                   backgroundColor: '#F5EFE6',
                   scale: 1.05,
                   transition: { duration: 0.2 }
@@ -106,52 +144,19 @@ const ProjectCard = ({ project, index }) => {
           </div>
         </div>
 
-        {/* Links with playful hover states */}
-        <div className="flex gap-4 pt-3 border-t" style={{ borderColor: '#D6C9A1' }}>
-          {project.github && (
-            <motion.a
-              href={project.github}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 font-medium"
-              style={{ color: '#0F172A', opacity: 0.7 }}
-              whileHover={{ opacity: 1, x: 3 }}
-              transition={{ duration: 0.2 }}
-            >
-              <Github size={18} />
-              <span>Code</span>
-            </motion.a>
-          )}
-          {project.demo && (
-            <motion.a
-              href={project.demo}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 font-medium"
-              style={{ color: '#0F172A', opacity: 0.7 }}
-              whileHover={{ opacity: 1, x: 3 }}
-              transition={{ duration: 0.2 }}
-            >
-              <ExternalLink size={18} />
-              <span>Demo</span>
-            </motion.a>
-          )}
+        {/* Click hint */}
+        <div
+          className="pt-3 border-t text-sm font-medium"
+          style={{
+            borderColor: project.ongoing ? '#D1D5DB' : '#D6C9A1',
+            color: project.ongoing ? '#9CA3AF' : '#0F172A',
+            opacity: 0.5
+          }}
+        >
+          {project.ongoing ? 'Details coming soon' : 'Click to learn more →'}
         </div>
       </div>
 
-      {/* Decorative corner element */}
-      <div
-        style={{
-          position: 'absolute',
-          top: '12px',
-          right: '12px',
-          width: '30px',
-          height: '30px',
-          border: '2px solid #D6C9A1',
-          borderRadius: '50%',
-          opacity: 0.3
-        }}
-      />
     </motion.div>
   );
 };

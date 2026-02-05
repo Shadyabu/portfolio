@@ -1,24 +1,48 @@
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { useEffect } from 'react';
 import Navbar from './components/layout/Navbar';
 import Footer from './components/layout/Footer';
-import Hero from './components/sections/Hero';
-import About from './components/sections/About';
-import Projects from './components/sections/Projects';
-import Skills from './components/sections/Skills';
-import Experience from './components/sections/Experience';
+import HomePage from './pages/HomePage';
+import ProjectDetail from './pages/ProjectDetail';
+
+// Get base URL from Vite config
+const basename = import.meta.env.BASE_URL;
+
+// Scroll to hash on navigation
+const ScrollToHash = () => {
+  const location = useLocation();
+
+  useEffect(() => {
+    if (location.hash) {
+      const element = document.querySelector(location.hash);
+      if (element) {
+        setTimeout(() => {
+          element.scrollIntoView({ behavior: 'smooth' });
+        }, 100);
+      }
+    } else {
+      window.scrollTo(0, 0);
+    }
+  }, [location]);
+
+  return null;
+};
 
 function App() {
   return (
-    <div className="min-h-screen">
-      <Navbar />
-      <main>
-        <Hero />
-        <About />
-        <Projects />
-        {/* <Skills /> */}
-        {/* <Experience /> */}
-      </main>
-      <Footer />
-    </div>
+    <Router basename={basename}>
+      <ScrollToHash />
+      <div className="min-h-screen">
+        <Navbar />
+        <main>
+          <Routes>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/project/:projectId" element={<ProjectDetail />} />
+          </Routes>
+        </main>
+        <Footer />
+      </div>
+    </Router>
   );
 }
 

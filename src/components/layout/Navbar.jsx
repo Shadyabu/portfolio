@@ -1,16 +1,42 @@
 import { useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Menu, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const location = useLocation();
+  const navigate = useNavigate();
 
   const navItems = [
     { name: 'About', href: '#about' },
     { name: 'Projects', href: '#projects' },
-    { name: 'Skills', href: '#skills' },
-    { name: 'Experience', href: '#experience' },
   ];
+
+  const handleNavClick = (e, href) => {
+    e.preventDefault();
+    setIsOpen(false);
+
+    // If we're not on the home page, navigate there first
+    if (location.pathname !== '/') {
+      navigate('/' + href);
+    } else {
+      // We're on home page, just scroll to the section
+      const element = document.querySelector(href);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+  };
+
+  const handleLogoClick = (e) => {
+    e.preventDefault();
+    if (location.pathname !== '/') {
+      navigate('/');
+    } else {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
 
   return (
     <nav
@@ -25,7 +51,8 @@ const Navbar = () => {
         <div className="flex justify-between items-center h-16">
           {/* Logo with Mouse Memoirs font */}
           <motion.a
-            href="#"
+            href="/"
+            onClick={handleLogoClick}
             style={{
               fontFamily: "'Mouse Memoirs', cursive",
               fontSize: '2rem',
@@ -45,6 +72,7 @@ const Navbar = () => {
               <motion.a
                 key={item.name}
                 href={item.href}
+                onClick={(e) => handleNavClick(e, item.href)}
                 className="px-4 py-2 rounded-lg font-medium transition-all duration-200"
                 style={{
                   color: '#0F172A',
@@ -111,13 +139,13 @@ const Navbar = () => {
                 <motion.a
                   key={item.name}
                   href={item.href}
+                  onClick={(e) => handleNavClick(e, item.href)}
                   className="block px-4 py-3 rounded-lg text-base font-medium"
                   style={{
                     color: '#0F172A',
                     textDecoration: 'none',
                     backgroundColor: 'transparent'
                   }}
-                  onClick={() => setIsOpen(false)}
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.3, delay: index * 0.1 }}

@@ -1,62 +1,62 @@
 export const projects = [
   {
-    id: 1,
-    title: 'SDG Tracking Agent',
-    description: 'Built an AI agent for tracking UN Sustainable Development Goals using natural language processing. Winner of Agentverse Hackathon.',
-    sustainability: 'UN SDGs',
-    technologies: ['Python', 'NLP', 'TensorFlow', 'Fetch.ai'],
-    github: 'https://github.com/yourusername/sdg-tracker',
+    id: 'food-insecurity-early-warning',
+    title: 'Food Insecurity Early Warning System',
+    description: 'Predicting food insecurity in Ethiopia using climate, agricultural, socio-economic, and conflict data to enable proactive humanitarian response.',
+    longDescription: `This ongoing project aims to develop a comprehensive early warning system for food insecurity in Ethiopia. By combining multiple data sources including climate patterns, agricultural yields, socio-economic indicators, and conflict data, the model provides predictive insights that can help humanitarian organizations and governments respond proactively.
+
+The system leverages machine learning techniques to identify patterns and correlations across diverse datasets, enabling early detection of regions at risk of food insecurity. This approach moves beyond reactive humanitarian aid to a more proactive, data-driven intervention strategy.`,
+    sustainability: 'Zero Hunger',
+    technologies: ['Python', 'Machine Learning', 'Data Science', 'Time Series Analysis'],
+    github: null,
     demo: null,
-    image: null,
+    image: new URL('../assets/projects/FEWSNET.webp', import.meta.url).href,
+    ongoing: true,
+    highlights: [
+      'Multi-source data integration (climate, agricultural, socio-economic, conflict)',
+      'Predictive modeling for early intervention',
+      'Focus on Ethiopia\'s unique regional challenges',
+      'Collaboration with humanitarian organizations'
+    ]
   },
   {
-    id: 2,
-    title: 'Climate Finance ML Model',
-    description: 'Developed machine learning models to analyze climate finance flows and predict investment patterns in renewable energy projects.',
-    sustainability: 'Climate Action',
-    technologies: ['PyTorch', 'scikit-learn', 'Pandas', 'Plotly'],
-    github: 'https://github.com/yourusername/climate-finance',
-    demo: null,
-    image: null,
-  },
-  {
-    id: 3,
-    title: 'Environmental NLP Pipeline',
-    description: 'Created an NLP pipeline for extracting environmental impact data from corporate sustainability reports using BERT-based models.',
-    sustainability: 'Environmental Data',
-    technologies: ['Transformers', 'BERT', 'Python', 'spaCy'],
-    github: 'https://github.com/yourusername/env-nlp',
-    demo: null,
-    image: null,
-  },
-  {
-    id: 4,
-    title: 'Energy Consumption Predictor',
-    description: 'Time-series forecasting model for predicting building energy consumption to optimize efficiency and reduce carbon footprint.',
-    sustainability: 'Energy Efficiency',
-    technologies: ['LSTM', 'PyTorch', 'Time Series', 'Docker'],
-    github: 'https://github.com/yourusername/energy-predictor',
-    demo: null,
-    image: null,
-  },
-  {
-    id: 5,
-    title: 'Deforestation Detection',
-    description: 'Computer vision model using satellite imagery to detect and monitor deforestation patterns in real-time.',
+    id: 'deforestation-detection-indonesia',
+    title: 'Deforestation Detection in Indonesia',
+    description: 'Gathered real-world data from open-source satellites to create a computer vision model which detects deforestation patterns.',
+    longDescription: `This project tackles the critical environmental challenge of deforestation in Indonesia through the application of computer vision and satellite imagery analysis. By leveraging open-source satellite data, I built a deep learning model capable of detecting and monitoring deforestation in near real-time.
+
+The model was trained on labeled satellite imagery to identify changes in forest cover, distinguishing between natural forest loss and human-driven deforestation. This technology can support conservation efforts by providing automated, scalable monitoring of Indonesia's vast forest regions.`,
     sustainability: 'Forest Conservation',
-    technologies: ['CNN', 'TensorFlow', 'Google Earth Engine', 'React'],
-    github: 'https://github.com/yourusername/deforestation-detection',
-    demo: 'https://demo-link.com',
-    image: null,
+    technologies: ['Python', 'TensorFlow', 'Pandas', 'Matplotlib', 'Computer Vision'],
+    github: null,
+    demo: null,
+    image: new URL('../assets/projects/deforestation-detection-indonesia.webp', import.meta.url).href,
+    ongoing: false,
+    highlights: [
+      'Open-source satellite data collection and processing',
+      'Deep learning model for change detection',
+      'Scalable approach for large geographic areas',
+      'Support for conservation monitoring efforts'
+    ]
   },
   {
-    id: 6,
-    title: 'Carbon Footprint Calculator',
-    description: 'Interactive web application with ML backend to calculate and visualize personal carbon footprints with actionable recommendations.',
-    sustainability: 'Carbon Reduction',
-    technologies: ['React', 'FastAPI', 'scikit-learn', 'D3.js'],
-    github: 'https://github.com/yourusername/carbon-calculator',
-    demo: 'https://demo-link.com',
-    image: null,
-  },
+    id: 'agents-of-change',
+    title: 'Agents of Change',
+    description: 'An AI Agent built at a hackathon that takes a project summary as input and returns a dashboard showing how it applies to the UN Sustainable Development Goals.',
+    longDescription: `Agents of Change is an innovative AI system developed during a hackathon that analyzes projects against the UN Sustainable Development Goals (SDGs). The system accepts a project summary as input and generates a comprehensive dashboard visualizing how the project aligns with or contributes to each of the 17 SDGs.
+
+My primary contribution was building the RAG (Retrieval-Augmented Generation) functionality, which enables the AI agent to retrieve relevant SDG documentation and guidelines to provide accurate, context-aware assessments of project alignment.`,
+    sustainability: 'UN SDGs',
+    technologies: ['Python', 'RAG', 'AI Agents', 'LLMs', 'APIs'],
+    github: null,
+    demo: null,
+    image: new URL('../assets/projects/agents-of-change.webp', import.meta.url).href,
+    ongoing: false,
+    highlights: [
+      'Built RAG functionality for accurate SDG matching',
+      'AI agent architecture for automated analysis',
+      'Interactive dashboard for visualizing SDG alignment',
+      'Hackathon project demonstrating rapid prototyping'
+    ]
+  }
 ];
