@@ -7,7 +7,7 @@ import * as blazeface from '@tensorflow-models/blazeface';
 import { Camera, X, AlertCircle, Loader2 } from 'lucide-react';
 import emotionGif from '../../assets/emotion recognition.webp';
 
-// Emotion labels in correct order matching trained model output
+// Emotion labels
 const EMOTIONS = ['Angry', 'Disgust', 'Fear', 'Happy', 'Neutral', 'Sad', 'Surprise'];
 
 // Processing constants
@@ -16,21 +16,16 @@ const DISPLAY_HEIGHT = 720;
 const PROCESS_WIDTH = 320;
 const PROCESS_HEIGHT = 240;
 const FRAME_SKIP = 3; // Process every 3rd frame for performance
-
-// Debug settings for mobile performance diagnosis
-const DEBUG_MOBILE = true; // Toggle for debugging
-const DEBUG_LOG_INTERVAL = 2000; // Log stats every 2 seconds
-
-// Mobile-specific optimizations
 const MOBILE_PROCESS_WIDTH = 160;  // Reduced from 320 for faster BlazeFace
 const MOBILE_PROCESS_HEIGHT = 120; // Reduced from 240
-const MOBILE_EMOTION_SKIP = 2;     // Run emotion every 2nd face detection
+const MOBILE_EMOTION_SKIP = 2;     // Run ai model every 2nd face detection
 const MOBILE_FACEBOX_SCALE = 1.4;  // Enlarge face box on mobile (BlazeFace returns tighter boxes at lower res)
 
-// Debug: Show what's being fed to the model
-const DEBUG_SHOW_CROP = true;  // Toggle to show/hide the face crop debug view
+// Debug settings for mobile performance diagnosis
+const DEBUG_MOBILE = false; // Toggle for debugging text
+const DEBUG_LOG_INTERVAL = 2000; // Log stats every 2 seconds
 
-// Detect mobile devices to use CPU backend (avoids WebGL context limits on iOS Safari)
+// Detect mobile devices to use wasm backend (avoids WebGL context limits on mobile)
 const isMobile = () => {
   return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 };
@@ -62,7 +57,7 @@ const Hero = () => {
   const [cameraPermission, setCameraPermission] = useState('prompt');
 
   const videoRef = useRef(null);
-  const processingCanvasRef = useRef(null); // Hidden 320x240 canvas for ML processing
+  const processingCanvasRef = useRef(null); // Hidden canvas for ML processing
   const overlayCanvasRef = useRef(null); // Visible canvas for face box overlay
   const streamRef = useRef(null);
   const modelRef = useRef(null);
@@ -91,7 +86,7 @@ const Hero = () => {
           await tf.setBackend('cpu');
         }
       }
-      // Desktop uses default WebGL backend
+      // Desktop uses default WebGL backend to run on GPU - will run faster than WASM
       await tf.ready();
       console.log('[TF] Backend ready:', tf.getBackend());
 
@@ -283,12 +278,12 @@ const Hero = () => {
         overlayCtx.font = `bold ${fontSize}px system-ui, -apple-system, sans-serif`;
         overlayCtx.fillText(label, barBoxX + 16, rowY + 5);
 
-        // Probability bar (no background bar, just the filled portion)
+        // Probability bar
         const barX = barBoxX + labelOffset;
         const barWidth = Math.max(2, barMaxWidth * prob);
         const barHeight = 12;
 
-        // Green color, brighter for max
+        // Green color, brighter green for max
         overlayCtx.fillStyle = i === maxIdx ? '#4ADE80' : '#22C55E';
 
         // Draw rounded bar
@@ -479,7 +474,7 @@ const Hero = () => {
           face224Ctx.drawImage(face48Canvas, 0, 0, 224, 224);
 
           // Debug: Draw face crop to visible debug canvas
-          if (DEBUG_SHOW_CROP && debugCanvasRef.current) {
+          if (DEBUG_MOBILE && debugCanvasRef.current) {
             const debugCtx = debugCanvasRef.current.getContext('2d');
             // Draw the 48x48 crop scaled up for visibility
             debugCtx.imageSmoothingEnabled = false; // Keep pixelated to see actual input
@@ -1163,7 +1158,7 @@ const Hero = () => {
                       )}
 
                       {/* Debug canvas showing face crop fed to model */}
-                      {DEBUG_SHOW_CROP && (
+                      {DEBUG_MOBILE && (
                         <div
                           style={{
                             position: 'absolute',
