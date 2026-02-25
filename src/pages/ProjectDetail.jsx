@@ -1,7 +1,161 @@
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Github, ExternalLink, Clock } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
 import { projects } from '../data/projects';
+
+const ResultsVisualization = () => {
+  const data = [
+    { region: 'Tested with Sumatra', variant: 'Sumatra Attention U-Net', f1: 86.7 },
+    { region: 'Tested with Sumatra', variant: 'Sumatra Attention U-Net + L2 + Dropout', f1: 83.4 },
+    { region: 'Tested with Kalimantan', variant: 'Kalimantan Attention U-Net', f1: 79.4 },
+    { region: 'Tested with Kalimantan', variant: 'Kalimantan Attention U-Net + L2 + Dropout', f1: 81.2 },
+    { region: 'Tested with Sumatra', variant: 'Kalimantan Attention U-Net + L2 + Dropout', f1: 83.6 },
+    { region: 'Tested with Sumatra', variant: 'Kalimantan Attention U-Net', f1: 83.4 },
+    { region: 'Tested with Kalimantan', variant: 'Sumatra Attention U-Net', f1: 77.6 }
+  ];
+
+  const chartWidth = 850;
+  const chartHeight = 550;
+  const padding = { top: 30, right: 40, bottom: 40, left: 280 };
+  const innerWidth = chartWidth - padding.left - padding.right;
+  const innerHeight = chartHeight - padding.top - padding.bottom;
+
+  const barHeight = (innerHeight / data.length) * 0.6;
+  const groupSpacing = innerHeight / data.length;
+
+  return (
+    <div style={{ margin: '2rem 0', width: '100%', display: 'flex', justifyContent: 'center' }}>
+      <svg width={chartWidth} height={chartHeight}>
+        {/* Background */}
+        <rect width={chartWidth} height={chartHeight} fill="#FFFFFF" stroke="#D6C9A1" strokeWidth="2" />
+
+        {/* Title */}
+        <text
+          x={chartWidth / 2}
+          y={20}
+          textAnchor="middle"
+          fontSize="16"
+          fontWeight="600"
+          fill="#0F172A"
+          fontFamily="'Mouse Memoirs', cursive"
+        >
+          F1 Scores of the models
+        </text>
+
+        {/* Grid lines */}
+        {[0, 20, 40, 60, 80, 100].map((value) => (
+          <g key={`grid-${value}`}>
+            <line
+              x1={padding.left + (value / 100) * innerWidth}
+              y1={padding.top}
+              x2={padding.left + (value / 100) * innerWidth}
+              y2={chartHeight - padding.bottom}
+              stroke="#E5D4C1"
+              strokeWidth="1"
+              strokeDasharray="4"
+            />
+            <text
+              x={padding.left + (value / 100) * innerWidth}
+              y={chartHeight - padding.bottom + 20}
+              textAnchor="middle"
+              fontSize="12"
+              fill="#0F172A"
+              opacity="0.6"
+            >
+              {value}%
+            </text>
+          </g>
+        ))}
+
+        {/* Axis label */}
+        <text
+          x={chartWidth - padding.right - 10}
+          y={chartHeight - padding.bottom + 35}
+          fontSize="12"
+          fontWeight="600"
+          fill="#0F172A"
+          opacity="0.7"
+        >
+          F1 Score
+        </text>
+
+        {/* Bars */}
+        {data.map((item, idx) => {
+          const y = padding.top + idx * groupSpacing + groupSpacing / 2 - barHeight / 2;
+          const isTestedOnOtherIsland = idx >= 4;
+          const barColor = isTestedOnOtherIsland ? "#B8A591" : "#D6C9A1";
+
+          return (
+            <g key={idx}>
+              {/* F1 Score Bar */}
+              <rect
+                x={padding.left}
+                y={y}
+                width={(item.f1 / 100) * innerWidth}
+                height={barHeight}
+                fill={barColor}
+                opacity="0.9"
+              />
+
+              {/* F1 Score value label */}
+              <text
+                x={padding.left + (item.f1 / 100) * innerWidth + 5}
+                y={y + barHeight / 2 + 4}
+                fontSize="11"
+                fontWeight="600"
+                fill="#0F172A"
+              >
+                {item.f1}%
+              </text>
+
+              {/* Y-axis labels */}
+              <text
+                x={padding.left - 10}
+                y={y + barHeight / 2 - 2}
+                textAnchor="end"
+                fontSize="10"
+                fontWeight="600"
+                fill="#0F172A"
+              >
+                {item.variant}
+              </text>
+              <text
+                x={padding.left - 10}
+                y={y + barHeight / 2 + 11}
+                textAnchor="end"
+                fontSize="9"
+                fill="#0F172A"
+                opacity="0.7"
+              >
+                {item.region}
+              </text>
+            </g>
+          );
+        })}
+
+        {/* Legend */}
+        <g>
+          <rect
+            x={padding.right}
+            y={15}
+            width={12}
+            height={12}
+            fill="#B8A591"
+          />
+          <text
+            x={padding.right + 18}
+            y={24}
+            fontSize="11"
+            fill="#0F172A"
+          >
+            tested with data from other island
+          </text>
+        </g>
+      </svg>
+    </div>
+  );
+};
 
 const ProjectDetail = () => {
   const { projectId } = useParams();
@@ -89,19 +243,54 @@ const ProjectDetail = () => {
             {project.title}
           </h1>
 
-          {/* Sustainability badge */}
-          {project.sustainability && (
-            <motion.span
-              className="inline-block px-4 py-2 text-base font-medium rounded-full mb-6"
+          {/* Subtitle */}
+          {project.subtitle && (
+            <p
+              className="mb-6 text-lg leading-relaxed"
               style={{
-                backgroundColor: '#D6C9A1',
                 color: '#0F172A',
-                border: '2px solid #0F172A'
+                opacity: 0.8,
+                fontStyle: 'italic'
               }}
-              whileHover={{ scale: 1.05, rotate: 1 }}
             >
-              {project.sustainability}
-            </motion.span>
+              {project.subtitle}
+            </p>
+          )}
+
+          {/* Tags or Sustainability badge */}
+          {project.tags && project.tags.length > 0 ? (
+            <div className="flex flex-wrap gap-2 mb-6">
+              {project.tags.map((tag, index) => (
+                <motion.span
+                  key={tag}
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.3, delay: index * 0.05 }}
+                  className="px-3 py-1 text-sm font-medium rounded-full"
+                  style={{
+                    backgroundColor: '#D6C9A1',
+                    color: '#0F172A',
+                    border: '1px solid #0F172A'
+                  }}
+                >
+                  {tag}
+                </motion.span>
+              ))}
+            </div>
+          ) : (
+            project.sustainability && (
+              <motion.span
+                className="inline-block px-4 py-2 text-base font-medium rounded-full mb-6"
+                style={{
+                  backgroundColor: '#D6C9A1',
+                  color: '#0F172A',
+                  border: '2px solid #0F172A'
+                }}
+                whileHover={{ scale: 1.05, rotate: 1 }}
+              >
+                {project.sustainability}
+              </motion.span>
+            )
           )}
 
           {/* Handdrawn underline */}
@@ -128,12 +317,120 @@ const ProjectDetail = () => {
           transition={{ duration: 0.6, delay: 0.2 }}
           className="mb-10"
         >
-          <p
-            className="text-lg leading-relaxed whitespace-pre-line"
+          <div
+            className="text-lg leading-relaxed"
             style={{ color: '#0F172A', opacity: 0.85 }}
           >
-            {project.longDescription}
-          </p>
+            <ReactMarkdown
+              components={{
+                h2: ({ node, ...props }) => (
+                  <h2
+                    {...props}
+                    style={{
+                      fontFamily: "'Mouse Memoirs', cursive",
+                      fontSize: '1.5rem',
+                      color: '#0F172A',
+                      marginTop: '1.5rem',
+                      marginBottom: '0.75rem',
+                      letterSpacing: '0.02em'
+                    }}
+                  />
+                ),
+                p: ({ node, ...props }) => <p {...props} style={{ marginBottom: '0.75rem' }} />,
+                img: ({ node, ...props }) => {
+                  if (props.src === 'RESULTS_VISUALIZATION') {
+                    return <ResultsVisualization />;
+                  }
+                  if (props.src === 'AGENTS_OF_CHANGE_VIDEO') {
+                    return (
+                      <video
+                        controls
+                        style={{
+                          maxWidth: '100%',
+                          height: 'auto',
+                          borderRadius: '0.5rem',
+                          margin: '1rem 0',
+                          border: '2px solid #D6C9A1'
+                        }}
+                        src={project.video}
+                      />
+                    );
+                  }
+                  return (
+                    <img
+                      {...props}
+                      src={props.src === 'ATTENTION_UNET_IMAGE' ? project.architectureImage : props.src}
+                      style={{
+                        maxWidth: '100%',
+                        height: 'auto',
+                        borderRadius: '0.5rem',
+                        margin: '1rem 0',
+                        border: '2px solid #D6C9A1'
+                      }}
+                    />
+                  );
+                },
+                table: ({ node, ...props }) => (
+                  <div style={{ overflowX: 'auto', margin: '2rem 0' }}>
+                    <table
+                      {...props}
+                      style={{
+                        width: '100%',
+                        borderCollapse: 'collapse',
+                        backgroundColor: '#FFFFFF',
+                        border: '2px solid #D6C9A1',
+                        borderRadius: '0.5rem',
+                        overflow: 'hidden'
+                      }}
+                    />
+                  </div>
+                ),
+                thead: ({ node, ...props }) => (
+                  <thead
+                    {...props}
+                    style={{
+                      backgroundColor: '#D6C9A1',
+                      fontWeight: 600
+                    }}
+                  />
+                ),
+                th: ({ node, ...props }) => (
+                  <th
+                    {...props}
+                    style={{
+                      padding: '0.75rem 1rem',
+                      textAlign: 'left',
+                      color: '#0F172A',
+                      fontWeight: 600,
+                      borderRight: '1px solid #FFFFFF'
+                    }}
+                  />
+                ),
+                tbody: ({ node, ...props }) => <tbody {...props} />,
+                tr: ({ node, ...props }) => (
+                  <tr
+                    {...props}
+                    style={{
+                      borderBottom: '1px solid #D6C9A1'
+                    }}
+                  />
+                ),
+                td: ({ node, ...props }) => (
+                  <td
+                    {...props}
+                    style={{
+                      padding: '0.75rem 1rem',
+                      textAlign: 'left',
+                      color: '#0F172A',
+                      borderRight: '1px solid #E5D4C1'
+                    }}
+                  />
+                )
+              }}
+            >
+              {project.longDescription}
+            </ReactMarkdown>
+          </div>
         </motion.div>
 
         {/* Highlights */}

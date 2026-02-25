@@ -90,19 +90,38 @@ const ProjectCard = ({ project, index }) => {
           {project.title}
         </h3>
 
-        {/* Sustainability badge with playful style */}
-        {project.sustainability && (
-          <motion.span
-            className="inline-block px-3 py-1 text-sm font-medium rounded-full mb-3"
-            style={{
-              backgroundColor: project.ongoing ? '#E5E7EB' : '#D6C9A1',
-              color: project.ongoing ? '#6B7280' : '#0F172A',
-              border: project.ongoing ? '1px solid #9CA3AF' : '1px solid #0F172A'
-            }}
-            whileHover={project.ongoing ? {} : { scale: 1.05, rotate: 2 }}
-          >
-            {project.sustainability}
-          </motion.span>
+        {/* Tags or Sustainability badge */}
+        {project.tags && project.tags.length > 0 ? (
+          <div className="flex flex-wrap gap-2 mb-3">
+            {project.tags.map((tag) => (
+              <motion.span
+                key={tag}
+                className="px-2 py-1 text-xs font-medium rounded-full"
+                style={{
+                  backgroundColor: project.ongoing ? '#E5E7EB' : '#D6C9A1',
+                  color: project.ongoing ? '#6B7280' : '#0F172A',
+                  border: project.ongoing ? '1px solid #9CA3AF' : '1px solid #0F172A'
+                }}
+                whileHover={project.ongoing ? {} : { scale: 1.05, rotate: 1 }}
+              >
+                {tag}
+              </motion.span>
+            ))}
+          </div>
+        ) : (
+          project.sustainability && (
+            <motion.span
+              className="inline-block px-3 py-1 text-sm font-medium rounded-full mb-3"
+              style={{
+                backgroundColor: project.ongoing ? '#E5E7EB' : '#D6C9A1',
+                color: project.ongoing ? '#6B7280' : '#0F172A',
+                border: project.ongoing ? '1px solid #9CA3AF' : '1px solid #0F172A'
+              }}
+              whileHover={project.ongoing ? {} : { scale: 1.05, rotate: 2 }}
+            >
+              {project.sustainability}
+            </motion.span>
+          )
         )}
 
         <p className="mb-4 leading-relaxed" style={{ color: '#0F172A', opacity: 0.8, fontSize: '0.95rem' }}>
