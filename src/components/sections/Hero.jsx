@@ -822,7 +822,7 @@ const Hero = () => {
                 opacity: 0.8
               }}
             >
-              AI/ML Engineer
+              Data Science and AI/ML Engineer
             </p>
             {/* Try it yourself button - Mobile only */}
             <motion.button

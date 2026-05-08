@@ -139,7 +139,7 @@ const ProjectCard = ({ project, index }) => {
               letterSpacing: '0.05em'
             }}
           >
-            Tech Stack
+            Skills
           </h4>
           <div className="flex flex-wrap gap-2">
             {project.technologies.map((tech) => (

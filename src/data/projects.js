@@ -56,7 +56,7 @@ No cross-evaluation was performed for the Sumatra model with L2 + dropout due to
 Dropout regularisation hurt performance on Sumatra but improved it on Kalimantan. The Kalimantan-trained model generalised best to unseen data, suggesting it learned forest features rather than memorising the training set. Overall, the model performs well considering the ground truth masks are approximately 85% accurate and the heavier cloud cover in Indonesia.`,
     architectureImage: new URL('../assets/AttentionUNet.png', import.meta.url).href,
     sustainability: 'Environmental Protection',
-    technologies: ['Python', 'TensorFlow 2.15', 'Attention U-Net', 'Sentinel-2', 'OpenEO', 'MapBiomas', 'Geospatial Data (Rasterio)', 'Image Segmentation', 'Regularisation & Ablation', 'Cloud Compositing'],
+    technologies: ['Python', 'TensorFlow', 'Attention U-Net', 'OpenEO', 'Geospatial Data (Rasterio)', 'Image Segmentation', 'Cloud Compositing'],
     github: "https://github.com/Shadyabu/deforestation_indonesia",
     demo: null,
     image: new URL('../assets/projects/deforestation-detection-indonesia.webp', import.meta.url).href,
@@ -70,9 +70,10 @@ Dropout regularisation hurt performance on Sumatra but improved it on Kalimantan
   },
   {
     id: 'agents-of-change',
-    title: 'Agents of Change',
+    title: 'Agents of Change - AgentVerse Hackathon',
     subtitle: "Agents of Change is an innovative SDG Impact Monitor that enables users to describe projects or ideas in plain language, the platform's agents then analyze the description to identify the most relevant SDGs, retrieve real-world evidence from reports and datasets, and visualize impact pathways to help users strengthen their sustainability value proposition, in their given context, even giving country specific analysis. Agent for UN Sustainable Development Goals Impact Analysis",
     description: 'An AI Agent built at a hackathon that takes a project summary as input and returns a dashboard showing how it applies to the UN Sustainable Development Goals.',
+    tags: ['AI Agents', 'RAG', 'LLMs'],
     longDescription: `
 **What It Does**
 
@@ -112,7 +113,7 @@ My primary responsibilities included:
 - Structuring multi-agent communication so insights remained coherent and traceable
 - Orchestrating complex component integration from embeddings to frontend visualization`,
     sustainability: 'UN SDGs',
-    technologies: ['Python', 'RAG', 'AI Agents', 'LLMs', 'Vector DB', 'nomic-embed', 'Docker', 'Qwen 3.4B', 'OpenAI API', 'Vector Search'],
+    technologies: ['Python', 'RAG', 'AI Agents', 'LLMs', 'Vector DB', 'Docker', 'Qwen 3.4B', 'SLMs', 'OpenAI API'],
     github: null,
     demo: null,
     image: new URL('../assets/projects/agents-of-change.webp', import.meta.url).href,
