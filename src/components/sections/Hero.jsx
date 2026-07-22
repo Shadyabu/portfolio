@@ -1195,7 +1195,7 @@ const Hero = () => {
                             fontFamily:"'Mouse Memoirs'"
                           }}
                         >
-                          Tip: Happy, surprised, neutral and angry (like you are screaming) work best with the webcam. Keep in mind that humans only agree to 65% on emotion labels!
+                          Tip: Happy, surprised, neutral and angry (like you are screaming) work best with the webcam. Please keep in mind that humans only agree to 65% on emotion labels!
                         </p>
                       )}
                   </div>
